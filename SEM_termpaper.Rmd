@@ -1,0 +1,78 @@
+---
+output: 
+  pdf_document:
+    fig_caption: true
+    keep_tex: true
+    latex_engine: pdflatex
+    number_sections: true
+header-includes:
+- \usepackage[english]{babel}
+- \usepackage{setspace}
+- \hyphenation{}
+- \pagenumbering{arabic}
+fontsize: 10pt
+geometry: a4paper, left=30mm, right=30mm, top=20mm, bottom=20mm, includefoot
+bibliography: references.bib
+documentclass: article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!-- Titlepage -->
+\thispagestyle{empty}
+
+\begin{raggedright}
+  Freie Universität Berlin\\
+  Chair of Statistics\\
+  Location: Berlin\\
+  Winter Term 2016/2017\\
+  Lecture: Missing Data Analysis\\
+  Examiner: Dr. Florian Meinfelder
+\end{raggedright}
+
+\vspace*{\fill}
+  \begin{center}
+    \textbf{\Large{The Supplemented EM algorithm}}%
+  \end{center}
+\vfill
+
+\begin{raggedleft}
+  Carlo Michaelis (), \href{mailto:carlo.michaelis@gmail.com}{carlo.michaelis@gmail.com}\\
+  Lukas Ruff (5029054), \href{mailto:contact@lukasruff.com}{contact@lukasruff.com}\\
+  \ \\
+  Master Statistics\\
+  \today\\
+\end{raggedleft}
+
+\newpage
+
+
+<!-- Table of Contents -->
+\tableofcontents
+\newpage
+
+
+<!-- List of Figures and Tables -->
+\listoffigures
+\listoftables
+\newpage
+
+
+<!-- Document Body -->
+# Section One
+
+@enders2010missing, @meng1991sem
+
+## Subsection One
+
+### Subsubsection One
+
+# Section Two
+
+\newpage
+
+
+<!-- References -->
+# References
