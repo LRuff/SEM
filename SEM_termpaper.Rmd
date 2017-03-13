@@ -61,15 +61,89 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 <!-- Document Body -->
-# Section One
+# Introduction
+
+general missing data context
+
+motivation for em
+
+em and vaiance estimation in em
+
+list of approaches for variance estimation in em
+
+pros/cons of bootstrap and multiple imputation
 
 @enders2010missing, @meng1991sem
 
-## Subsection One
+# EM Algorithm
 
-### Subsubsection One
+Introduction
 
-# Section Two
+## Objective and algorithm
+
+explain objective of em, how to obtain Q
+
+E step and M step in general from paper (2.1)
+
+In box: Application to regression model, normal case
+
+## Rate of convergence (DM)
+
+describe mapping as combination of e-step, m-step
+
+attributes of m -> fixed points
+
+taylor
+
+link later used
+
+In box: Application to regression model, normal case
+
+# SEM algorithm
+
+Introduction: Goal: variance of parameter estimation
+
+## Large sample variance
+
+<!-- combine 2.3/2.4 -->
+
+derivation of theoretical variance V
+
+explain why large sample
+
+Explain relation to fisher information matrix (regularity / large sample)
+
+proof 2.4
+
+<!-- proof 2.4.5 optional -->
+
+transition: Evaluation of V (1) Ioc (2) DM (3) V
+
+## Ioc for exponential family
+
+exponential family
+
+regularity of expfam (link to fisher information, see above)
+
+<!-- Optional: What to do if not regular? -->
+
+In box: Application to regression model, normal case
+
+## DM
+
+r_ij component
+
+component wise derivation of matrix
+
+(1) EM to obtain theta (2) SEM to obtain r_ij
+
+<!-- OPtional: Alternatives for approximation of DM -->
+
+
+
+# Application
+
+stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em)
 
 \newpage
 
