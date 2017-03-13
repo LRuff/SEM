@@ -10,6 +10,10 @@ header-includes:
 - \usepackage{setspace}
 - \hyphenation{}
 - \pagenumbering{arabic}
+- \newcommand{\Yobs}{Y_{\text{obs}}}
+- \newcommand{\Ymis}{Y_{\text{mis}}}
+- \newcommand{\E}{\mathbb{E}}
+- \newcommand{\argmax}{\text{argmax}}
 fontsize: 10pt
 geometry: a4paper, left=30mm, right=30mm, top=20mm, bottom=20mm, includefoot
 bibliography: references.bib
@@ -39,7 +43,7 @@ knitr::opts_chunk$set(echo = TRUE)
 \vfill
 
 \begin{raggedleft}
-  Carlo Michaelis (), \href{mailto:carlo.michaelis@gmail.com}{carlo.michaelis@gmail.com}\\
+  Carlo Michaelis (5043128), \href{mailto:carlo.michaelis@gmail.com}{carlo.michaelis@gmail.com}\\
   Lukas Ruff (5029054), \href{mailto:contact@lukasruff.com}{contact@lukasruff.com}\\
   \ \\
   Master Statistics\\
@@ -67,6 +71,8 @@ general missing data context
 
 motivation for em
 
+The expectation maximization (EM) algorithm was devloped by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
+
 em and vaiance estimation in em
 
 list of approaches for variance estimation in em
@@ -75,31 +81,88 @@ pros/cons of bootstrap and multiple imputation
 
 @enders2010missing, @meng1991sem
 
-# EM Algorithm
+# The EM Algorithm
 
-Introduction
+The EM algorithm consists of two steps, namely the *expectation step* and the *maximization step*. Both steps are applied alternately until some convergence criterion is reached. Depending on given data structure, especially the missing data, we can find a *rate of convergence* $DM$ for the parameters. Both aspects of the EM algorithm are explained in this section.
 
 ## Objective and algorithm
 
-explain objective of em, how to obtain Q
+The model for the complete data is given by
 
-E step and M step in general from paper (2.1)
+$$
+f(Y|\theta),\quad \theta = (\theta_1, ..., \theta_d)
+$$
 
-In box: Application to regression model, normal case
+and $Y$ can be separated into a observed $\Yobs$ and a missed part $\Ymis$, such that $Y = (\Yobs, \Ymis)$. We define $\theta^*$ as the maximum likelihood estima (MLE) of the parameter $\theta$. The estimation is based on the observed data $\Yobs$ and therefore maximizes $f(\Yobs|\theta)$. The algorithm starts with an initial parameter value $\theta^{(0)}$, which becomes $\theta^{(t)}$ at the `t`'hs EM iteration, which converges to $\theta^*$.
 
-## Rate of convergence (DM)
+<!-- explain objective of em, how to obtain Q -->
 
-describe mapping as combination of e-step, m-step
+**Expectation step**. The idea of the so called expectation step (*E step*) is to obtain the expectation value of the log-likelihood function related to the missing data, given the observed data and the parameter at iteration `t`, which is given by
 
-attributes of m -> fixed points
+$$
+Q(\theta|\theta^{(t)}) = \E_{\Ymis|\Yobs,\theta^{(t)}}[L(\theta|Y)]  = \E_{\Ymis|\Yobs,\theta^{(t)}}[\ln f(Y|\theta)],
+$$
 
-taylor
+while the objective can be calculated by
 
-link later used
+$$
+\E_{\Ymis|Yobs,\theta^{(t)}}[L(\theta|Y)] = \int L(\theta|Y) f(\Ymis|\Yobs,\theta=\theta^{(t)})\,d\Ymis.
+$$
 
-In box: Application to regression model, normal case
+**Minimization step**. In the Minimization step (*M step*) the objective of the E step will be maximized, which means that
 
-# SEM algorithm
+$$
+Q(\theta^{(t+1)}|\theta^{(t)}) \ge Q(\theta|\theta^{(t)}), \quad \forall \theta.
+$$
+
+More clearly the parameter $\theta^{(t+1)}$ is obtained by 
+
+$$
+\theta^{(t+1)} = \underset{\theta}{\argmax} \,Q(\theta|\theta^{(t)}).
+$$
+
+It means that we search for $\theta^{(t+1)}$ which maximizes the objective, given $\theta^{(t)}$ and we can now search for $Q(\theta|\theta^{(t+1)})$ using the E step, which starts the next iteration.
+
+<!-- In box: Application to regression model, normal case -->
+
+## Rate of convergence
+
+The EM algorithm updates the parameter in every iteration of E step and M step from $\theta^{(t)}$ to $\theta^{(t+1)}$. To describe this behavior we can define a mapping
+
+$$
+M: \Theta \to \Theta,\; \theta \mapsto M(\theta)\quad \text{such that}\quad \theta^{(t+1)} = M(\theta^{(t)}),
+$$
+
+where $\Theta$ is the parameter space. While $\theta^{(t)}$ converges to $\theta^*$, we can state
+
+$$
+\theta^* = M(\theta^*),
+$$
+
+where $\theta^*$ is a fixed point of $M$.
+
+To get a rate of convergence, we need a derivation of $M$, which we call $DM$. Therefore we do a taylor approximation of $\theta^{(t+1)}$ in the neighborhood of $\theta^*$ and stop after the linear term, which results in
+
+\begin{align*}
+\theta^{(t+1)} &= M(\theta^*) + M'(\theta^*) (\theta^{(t+1)} - \theta^*) + \frac{1}{2} M''(\theta^*)(\theta^{(t+1)} - \theta^*)^2 + ...\\
+&\approx \theta^* + M'(\theta^*) (\theta^{(t+1)} - \theta^*).
+\end{align*}
+
+Rearraning the equation finally gives
+
+$$
+M'(\theta^*) = DM \approx \frac{\theta^{(t+1)} - \theta^*}{\theta^{(t)} - \theta^*},\quad \text{where}\quad DM = \left( \frac{\partial M_j(\theta)}{\partial \theta} \right) \big|_{\theta = \theta^*}.
+$$
+
+We call $DM$ the *rate matrix*.
+
+<!-- describe mapping as combination of e-step, m-step -->
+<!-- attributes of m -> fixed points -->
+<!-- taylor -->
+<!-- link later used -->
+<!-- In box: Application to regression model, normal case -->
+
+# The SEM algorithm
 
 Introduction: Goal: variance of parameter estimation
 
