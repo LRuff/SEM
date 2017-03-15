@@ -67,19 +67,20 @@ knitr::opts_chunk$set(echo = TRUE)
 <!-- Document Body -->
 # Introduction
 
-general missing data context
+There are several methods to deal with missing data. Beside multiple imputation it is possible to estimate parameters by using the likelihood function. Unfortunatly in many cases to solve the likelihood of the observed data is not easy. Therefore the so called expectation maximization (EM) algorithm can be used. It was devloped by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
 
-motivation for em
+While the algortihm itself - finding parameters $\hat\theta$ - is feasible, the estimtaion of the variance of the estimators (e.g. to obtain standard errors) is somehow difficult. Different approaches were suggested to face this problem:
 
-The expectation maximization (EM) algorithm was devloped by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
-
-em and vaiance estimation in em
-
-list of approaches for variance estimation in em
+ * Resampling: Bootstrap/Jackknife
+ * Multiple imputation
+ * Supplemented EM (SEM)
+ * ...
 
 pros/cons of bootstrap and multiple imputation
 
 @enders2010missing, @meng1991sem
+
+In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
 
 # The EM Algorithm
 
