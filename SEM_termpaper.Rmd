@@ -71,16 +71,17 @@ There are several methods to deal with missing data. Beside multiple imputation 
 
 While the algortihm itself - finding parameters $\hat\theta$ - is feasible, the estimtaion of the variance of the estimators (e.g. to obtain standard errors) is somehow difficult. Different approaches were suggested to face this problem:
 
+ * Algebraic analysis
+ * Monte Carlo evaluation using multiple imputation
+ * Numerical methods to calculate observed information matrix
  * Resampling: Bootstrap/Jackknife
- * Multiple imputation
  * Supplemented EM (SEM)
- * ...
 
-pros/cons of bootstrap and multiple imputation
-
-@enders2010missing, @meng1991sem
+While methods like resampling or algebraic analysis mostly depends on iid data, SEM can be done without this assumption. Furthermore numerical methods try to calculate the variance covariance matrix directly, while SEM just computes the increase of variance, which is computational more stable. Lastly Monte Carlo evaluation need more extra code and the result depends on the number of imputations. In 1990s, when the SEM was developped by @meng1991sem, the computational power was far less than today, where it was not possible to do as many imputation as are possible today.
 
 In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
+
+@enders2010missing
 
 # The EM Algorithm
 
