@@ -77,9 +77,9 @@ em and vaiance estimation in em
 
 list of approaches for variance estimation in em
 
-pros/cons of bootstrap and multiple imputation
+pros/cons of bootstrap and multiple imputation (comparison to other methods)
 
-@enders2010missing, @meng1991sem
+@enders2010missing,
 
 # The EM Algorithm
 
@@ -162,11 +162,15 @@ We call $DM$ the *rate matrix*.
 <!-- link later used -->
 <!-- In box: Application to regression model, normal case -->
 
+<!-- Short argument, why maximizing Q leads to a better parameter estimation which has a higher *observed-data* (log-)likelihood. Simple proof using Jensen! -->
+<!-- The EM algorithm converges linearly with rate matrix DM -->
+
 # The SEM algorithm
 
-Introduction: Goal: variance of parameter estimation
+In comparison to multiple imputation methods, asymptotic variance-covariance matrices of the parameter estimaton (e.g. standard errors) are not given automatically when using the EM algorithm. Instead, additional steps are required in order to compute standard errors of the estimates. One approach introduced by @meng1991sem is the so-called *supplemented EM* or *SEM* algorithm. This procedure obtains numerically stable asymptotic variance-covariance matrices only from computing the complete-data asymptotic variance-covariance matrix, using code for the E and M steps of EM, and standard matrix operations. The key idea of the SEM algorithm is effectively to numerically differentiate the implicit mapping $\theta \to M(\theta)$ defined by the EM algorithm, i.e. defining a method to compute $DM$.
 
-## Large sample variance
+
+## Asymptotic variance-covariance matrix of the EM estimate based on $\Yobs$
 
 <!-- combine 2.3/2.4 -->
 
@@ -203,6 +207,10 @@ component wise derivation of matrix
 <!-- OPtional: Alternatives for approximation of DM -->
 
 
+<!-- ## Notes -->
+<!-- It is important to emphasize that the variance-covariance matrix obtained from SEM is based on the second derivatives of the observed-data log-likelihood and only is inferentially valid asymptotically, i.e. for large samples. -->
+<!-- The more normal the likelihood, the better the approximation. Therefore, transformations are useful in order to improve the results. (e.g. log(variance), etc.) -->
+<!-- Switch notation from $\theta^*$ to $\hat \theta$? This is more consistent with general statistical notation... -->
 
 # Application
 
