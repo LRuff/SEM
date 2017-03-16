@@ -10,9 +10,11 @@ header-includes:
 - \usepackage{setspace}
 - \hyphenation{}
 - \pagenumbering{arabic}
+- \numberwithin{equation}{section}
 - \newcommand{\Yobs}{Y_{\text{obs}}}
 - \newcommand{\Ymis}{Y_{\text{mis}}}
 - \newcommand{\E}{\mathbb{E}}
+- \newcommand{\R}{\mathbb{R}}
 - \newcommand{\argmax}{\text{argmax}}
 - \newcommand{\I}{\mathcal{I}}
 fontsize: 10pt
@@ -82,7 +84,7 @@ While methods like resampling or algebraic analysis mostly depends on iid data, 
 
 In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
 
-# The EM Algorithm
+# A Recap of the EM Algorithm
 
 The EM algorithm consists of two steps, namely the *expectation step* and the *maximization step*. Both steps are applied alternately until some convergence criterion is reached. Depending on given data structure, especially the missing data, we can find a *rate of convergence* $DM$ for the parameters. Both aspects of the EM algorithm are explained in this section.
 
@@ -151,9 +153,10 @@ To get a rate of convergence, we need a derivation of $M$, which we call $DM$. T
 
 Rearraning the equation finally gives
 
-$$
+\begin{equation}
+\label{eq:rate}
 M'(\theta^*) = DM \approx \frac{\theta^{(t+1)} - \theta^*}{\theta^{(t)} - \theta^*},\quad \text{where}\quad DM = \left( \frac{\partial M_j(\theta)}{\partial \theta} \right) \big|_{\theta = \theta^*}.
-$$
+\end{equation}
 
 We call $DM$ the *rate matrix*.
 
@@ -192,22 +195,17 @@ V = \I_{oc}^{-1} + \Delta V,
 where
 
 $$
-\I_{oc} = \E[\I_{o}(\theta \, | \, Y) \, | \, \Yobs, \theta ] \bigg\rvert_{\theta = \hat \theta}
+\I_{oc} = \E[\I_{o}(\theta \, | \, Y) \, | \, \Yobs, \theta ] \bigg\rvert_{\theta = \hat \theta}, \qquad \I_{o}(\theta \, | \, Y) = -\frac{\partial^2 \log f(Y \, | \, \theta)}{\partial\theta \, \partial\theta},
 $$
 
-is the conditional expectation w.r.t. $\Yobs$ of the complete-data observed information matrix,
+is the conditional expectation w.r.t. $\Yobs$ of the complete-data observed information matrix $\I_{o}(\theta \, | \, Y)$ evaluated at $\theta = \hat \theta$ and
 
-$$
-\I_{o}(\theta \, | \, Y) = -\frac{\partial^2 \log f(Y \, | \, \theta)}{\partial\theta \, \partial\theta},
-$$
-
-evaluated at $\theta = \hat \theta$, and
-
-$$
+\begin{equation}
+\label{eq:DeltaV}
 \Delta V =  \I_{oc}^{-1} \, DM \, (I_d - DM)^{-1},
-$$
+\end{equation}
 
-where $DM$ is the rate matix from (...) and $I_d$ is the $d$-dimensional identity matrix.
+where $DM$ is the rate matix from (\ref{eq:rate}) and $I_d$ is the $d$-dimensional identity matrix.
 
 <!-- TODO: How is the (well-known) asymptotic variance V derived? -->
 <!-- explain why only large sample i.e. asymptotic -->
@@ -255,13 +253,13 @@ $$
 \textit{observed information} = \textit{complete information } - \textit{missing information}.
 $$
 
-Besides, @dempster1977maximum showed that when maximizing $Q(\theta \, | \, \theta^{(t)})$ in the M step, i.e. when setting the first derivative equal to zero, it holds that
+Besides, @dempster1977maximum showed that when maximizing $Q(\theta \, | \, \theta^{(t)})$ in the M step of the EM algorithm, i.e. when setting the first derivative equal to zero, it holds that
 
 $$
 DM = \I_{om} \I_{oc}^{-1}.
 $$
 
-This can be used in (\ref{eq:informationprinciple}) to obtain
+This can be used with (\ref{eq:informationprinciple}) to obtain
 
 $$
 \I_o(\hat \theta \, | \, \Yobs) = \I_{oc} - \I_{om} = (I_d - \I_{om}\I_{oc}^{-1})\I_{oc} = (I_d - DM)\I_{oc}.
@@ -270,28 +268,32 @@ $$
 Finally, by inverting both sides of the equation, we get
 
 \begin{align*}
-V &= \I_o^{-1}(\hat \theta \, | \, \Yobs)\\
-&= \I_{oc}^{-1}(I_d - DM)^{-1}\\
+V = \I_o^{-1}(\hat \theta \, | \, \Yobs) &= \I_{oc}^{-1}(I_d - DM)^{-1}\\
 &= \I_{oc}^{-1}(I_d - DM + DM)(I_d - DM)^{-1}\\
 &= \I_{oc}^{-1} + \I_{oc}^{-1} DM (I_d - DM)^{-1} = \I_{oc}^{-1} + \Delta V.
 \end{align*}
 
+This representation of $V$ is the ansatz of the SEM algorithm, which consists of three parts: (1) the evaluation of $\I_o^{-1}$, (2) the numerical approximation of $DM$, and (3) using (\ref{eq:V}) with (\ref{eq:DeltaV}) to estimate $V$. We go into the evaluation of $\I_o^{-1}$ in the next subsection.
 
-<!-- proof 2.4.5 optional -->
+<!-- Optional TODO: proof 2.4.5 -->
 
-transition: Evaluation of V (1) Ioc (2) DM (3) V
 
-## Ioc for exponential family
+## Evaluation of $\I_o^{-1}$ for exponential families
 
-exponential family
+We consider the evaluation of $\I_o^{-1}$ for the case that the complete-data density $f(Y \, | \, \theta)$ is from an exponential family, since this is most common in practical applications. This means that the complete-data density has the following representation
 
-regularity of expfam (link to fisher information, see above)
+$$
+f(Y \, | \, \theta) = h(Y) \exp\{\eta(\theta)^TT(Y) - A(\theta)\} = h(Y) \exp\left\{\sum_{i=1}^s\eta_i(\theta)T_i(Y) - A(\theta)\right\},
+$$
 
-<!-- Optional: What to do if not regular? -->
+where the *natural parameter* $\eta(\theta)$ and the *sufficient statistics* $T(Y)$ are vector functions in $\R^s, s \geq d,$ and the *base measure* $h(Y)$ as well as the *log-normalizer* $A(\theta)$ are scalar functions.
 
-In box: Application to regression model, normal case
+In case of regular exponential families, the complete-data observed information matrix is equal to the Fisher information matrix.
 
-## DM
+TODO: Note on the case of non-regularity (Taylor expansion! maybe footnote...)
+
+
+## Numerical Approximation of DM
 
 r_ij component
 
@@ -299,13 +301,16 @@ component wise derivation of matrix
 
 (1) EM to obtain theta (2) SEM to obtain r_ij
 
-<!-- OPtional: Alternatives for approximation of DM -->
+<!-- Optional: Alternatives for approximation of DM -->
 
 
 <!-- ## Notes -->
 <!-- It is important to emphasize that the variance-covariance matrix obtained from SEM is based on the second derivatives of the observed-data log-likelihood and only is inferentially valid asymptotically, i.e. for large samples. -->
 <!-- The more normal the likelihood, the better the approximation. Therefore, transformations are useful in order to improve the results. (e.g. log(variance), etc.) -->
 <!-- Switch notation from $\theta^*$ to $\hat \theta$? This is more consistent with general statistical notation... -->
+
+## The algorithm
+
 
 
 # Application
