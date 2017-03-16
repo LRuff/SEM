@@ -14,6 +14,7 @@ header-includes:
 - \newcommand{\Ymis}{Y_{\text{mis}}}
 - \newcommand{\E}{\mathbb{E}}
 - \newcommand{\argmax}{\text{argmax}}
+- \newcommand{\I}{\mathcal{I}}
 fontsize: 10pt
 geometry: a4paper, left=30mm, right=30mm, top=20mm, bottom=20mm, includefoot
 bibliography: references.bib
@@ -81,6 +82,13 @@ While methods like resampling or algebraic analysis mostly depends on iid data, 
 
 In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
 
+<<<<<<< HEAD
+=======
+pros/cons of bootstrap and multiple imputation (comparison to other methods)
+
+@enders2010missing,
+
+>>>>>>> 0ccb413ac4a81349cdaf4721328cb62f66944eba
 # The EM Algorithm
 
 The EM algorithm consists of two steps, namely the *expectation step* and the *maximization step*. Both steps are applied alternately until some convergence criterion is reached. Depending on given data structure, especially the missing data, we can find a *rate of convergence* $DM$ for the parameters. Both aspects of the EM algorithm are explained in this section.
@@ -162,21 +170,123 @@ We call $DM$ the *rate matrix*.
 <!-- link later used -->
 <!-- In box: Application to regression model, normal case -->
 
+<!-- Short argument, why maximizing Q leads to a better parameter estimation which has a higher *observed-data* (log-)likelihood. Simple proof using Jensen! -->
+<!-- The EM algorithm converges linearly with rate matrix DM -->
+
 # The SEM algorithm
 
-Introduction: Goal: variance of parameter estimation
+In comparison to multiple imputation methods, asymptotic variance-covariance matrices of the parameter estimaton (e.g. standard errors) are not given automatically when using the EM algorithm. Instead, additional steps are required in order to compute standard errors of the estimates. One approach introduced by @meng1991sem is the so-called *supplemented EM* or *SEM* algorithm. This procedure obtains numerically stable asymptotic variance-covariance matrices only from computing the complete-data asymptotic variance-covariance matrix, using code for the E and M steps of EM, and standard matrix operations. The key idea of the SEM algorithm is effectively to numerically differentiate the implicit mapping $\theta \to M(\theta)$ defined by the EM algorithm, i.e. defining a method to numerically approximate $DM$.
 
-## Large sample variance
 
-<!-- combine 2.3/2.4 -->
+## Asymptotic variance-covariance matrix of $(\theta - \hat \theta)$ based on $\Yobs$
 
-derivation of theoretical variance V
+The desired asymptotic variance-covariance matrix of $(\theta - \hat \theta)$ based on $\Yobs$ is given by the inverse of the observed information matrix, i.e.
 
-explain why large sample
+$$
+V = \I_{o}^{-1}(\hat \theta \, | \, \Yobs),
+$$
 
-Explain relation to fisher information matrix (regularity / large sample)
+where the observed information matrix $\I_{o}(\theta \, | \, \Yobs)$ is the negative second derivative of the log-likelihood of the observed data,
 
-proof 2.4
+\begin{equation}
+\label{eq:Iobs}
+\I_{o}(\theta \, | \, \Yobs) = -\frac{\partial^2 \log f(\Yobs \, | \, \theta)}{\partial\theta \, \partial\theta}.
+\end{equation}
+
+The problem is that it can often be very difficult to evaluate (\ref{eq:Iobs}) directly. Therefore, another representation of $V$ is preferred. Precisely, we will derive the following representation of $V$:
+
+\begin{equation}
+\label{eq:V}
+V = \I_{oc}^{-1} + \Delta V, 
+\end{equation}
+
+where
+
+$$
+\I_{oc} = \E[\I_{o}(\theta \, | \, Y) \, | \, \Yobs, \theta ] \bigg\rvert_{\theta = \hat \theta}
+$$
+
+is the conditional expectation w.r.t. $\Yobs$ of the complete-data observed information matrix,
+
+$$
+\I_{o}(\theta \, | \, Y) = -\frac{\partial^2 \log f(Y \, | \, \theta)}{\partial\theta \, \partial\theta},
+$$
+
+evaluated at $\theta = \hat \theta$, and
+
+$$
+\Delta V =  \I_{oc}^{-1} \, DM \, (I_d - DM)^{-1},
+$$
+
+where $DM$ is the rate matix from (...) and $I_d$ is the $d$-dimensional identity matrix.
+
+<!-- TODO: How is the (well-known) asymptotic variance V derived? -->
+<!-- explain why only large sample i.e. asymptotic -->
+<!-- Explain relation to fisher information matrix (regularity / large sample) -->
+
+## Proof that $V = \I_{oc}^{-1} + \Delta V$
+
+From Bayes' rule on densities, we have the factorization
+
+$$
+f(Y \, | \, \theta) = f(\Yobs \, | \, \theta) \, f(\Ymis \, | \, \Yobs, \theta),
+$$
+
+and therefore it follows for the log-likelihood of $\theta$ given $\Yobs$
+
+\begin{align*}
+L(\theta \, | \, \Yobs) &= \log f(\Yobs \, | \, \theta)\\
+&= \log f(Y \, | \, \theta) - \log f(\Ymis \, | \, \Yobs, \theta) = L(\theta \, | \, Y) - \log f(\Ymis \, | \, \Yobs, \theta).
+\end{align*}
+
+Taking second derivatives and the expectation over the conditional distribution $f(\Ymis \, | \, \Yobs , \theta)$, we get that
+
+\begin{align*}
+&&\E\left[\frac{\partial^2 L(\theta \, | \, \Yobs)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] &= \E\left[\frac{\partial^2 L(\theta \, | \, Y)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] - \E\left[\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right]\\
+\iff &&-\frac{\partial^2 L(\theta \, | \, \Yobs)}{\partial\theta \, \partial\theta} &= \E\left[-\frac{\partial^2 L(\theta \, | \, Y)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] - \E\left[-\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] \\
+\iff &&\I_o(\theta \, | \, \Yobs) &= \E\left[\I_o(\theta \, | \, Y) \, | \, \Yobs, \theta \right] - \E\left[-\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right].
+\end{align*}
+
+Evaluating this equation at $\theta = \hat \theta$ gives
+
+\begin{equation}
+\label{eq:informationprinciple}
+\I_o(\hat \theta \, | \, \Yobs) = \I_{oc} - \I_{om},
+\end{equation}
+
+where 
+
+$$
+\I_{om} = \left. \E\left[-\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] \right\rvert_{\theta = \hat \theta}
+$$
+
+can be viewed as the missing information. Equation (\ref{eq:informationprinciple}) is also called *missing information principle* with the nice interpretation
+
+$$
+\textit{observed information} = \textit{complete information } - \textit{missing information}.
+$$
+
+Besides, @dempster1977maximum showed that when maximizing $Q(\theta \, | \, \theta^{(t)})$ in the M step, i.e. when setting the first derivative equal to zero, it holds that
+
+$$
+DM = \I_{om} \I_{oc}^{-1}.
+$$
+
+This can be used in (\ref{eq:informationprinciple}) to obtain
+
+$$
+\I_o(\hat \theta \, | \, \Yobs) = \I_{oc} - \I_{om} = (I_d - \I_{om}\I_{oc}^{-1})\I_{oc} = (I_d - DM)\I_{oc}.
+$$
+
+Finally, by inverting both sides of the equation, we get
+
+\begin{align*}
+V &= \I_o^{-1}(\hat \theta \, | \, \Yobs)\\
+&= \I_{oc}^{-1}(I_d - DM)^{-1}\\
+&= \I_{oc}^{-1}(I_d - DM + DM)(I_d - DM)^{-1}\\
+&= \I_{oc}^{-1} + \I_{oc}^{-1} DM (I_d - DM)^{-1} = \I_{oc}^{-1} + \Delta V.
+\end{align*}
+
 
 <!-- proof 2.4.5 optional -->
 
@@ -202,6 +312,11 @@ component wise derivation of matrix
 
 <!-- OPtional: Alternatives for approximation of DM -->
 
+
+<!-- ## Notes -->
+<!-- It is important to emphasize that the variance-covariance matrix obtained from SEM is based on the second derivatives of the observed-data log-likelihood and only is inferentially valid asymptotically, i.e. for large samples. -->
+<!-- The more normal the likelihood, the better the approximation. Therefore, transformations are useful in order to improve the results. (e.g. log(variance), etc.) -->
+<!-- Switch notation from $\theta^*$ to $\hat \theta$? This is more consistent with general statistical notation... -->
 
 
 # Application
