@@ -67,21 +67,19 @@ knitr::opts_chunk$set(echo = TRUE)
 <!-- Document Body -->
 # Introduction
 
-There are several methods to deal with missing data. Beside multiple imputation it is possible to estimate parameters by using the likelihood function. Unfortunatly in many cases to solve the likelihood of the observed data is not easy. Therefore the so called expectation maximization (EM) algorithm can be used. It was devloped by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
+There are several methods to deal with missing data. Beside multiple imputation it is possible to estimate parameters by using the likelihood function. Unfortunatly in many cases, solving the likelihood of the observed data is not an easytask. Therefore the so called expectation maximization (EM) algorithm can be used. It was developed by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
 
 While the algortihm itself - finding parameters $\hat\theta$ - is feasible, the estimtaion of the variance of the estimators (e.g. to obtain standard errors) is somehow difficult. Different approaches were suggested to face this problem:
 
- * Algebraic analysis
- * Monte Carlo evaluation using multiple imputation
- * Numerical methods to calculate observed information matrix
+ * Algebraic analysis [@meilijson1989fast]
+ * Monte Carlo evaluation using multiple imputation [@rubin2004multiple]
+ * Numerical methods [@carlin1987seasonal]
  * Resampling: Bootstrap/Jackknife
  * Supplemented EM (SEM)
 
 While methods like resampling or algebraic analysis mostly depends on iid data, SEM can be done without this assumption. Furthermore numerical methods try to calculate the variance covariance matrix directly, while SEM just computes the increase of variance, which is computational more stable. Lastly Monte Carlo evaluation need more extra code and the result depends on the number of imputations. In 1990s, when the SEM was developped by @meng1991sem, the computational power was far less than today, where it was not possible to do as many imputation as are possible today.
 
 In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
-
-@enders2010missing
 
 # The EM Algorithm
 
