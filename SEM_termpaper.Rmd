@@ -82,13 +82,6 @@ While methods like resampling or algebraic analysis mostly depends on iid data, 
 
 In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
 
-<<<<<<< HEAD
-=======
-pros/cons of bootstrap and multiple imputation (comparison to other methods)
-
-@enders2010missing,
-
->>>>>>> 0ccb413ac4a81349cdaf4721328cb62f66944eba
 # The EM Algorithm
 
 The EM algorithm consists of two steps, namely the *expectation step* and the *maximization step*. Both steps are applied alternately until some convergence criterion is reached. Depending on given data structure, especially the missing data, we can find a *rate of convergence* $DM$ for the parameters. Both aspects of the EM algorithm are explained in this section.
@@ -164,10 +157,6 @@ $$
 
 We call $DM$ the *rate matrix*.
 
-<!-- describe mapping as combination of e-step, m-step -->
-<!-- attributes of m -> fixed points -->
-<!-- taylor -->
-<!-- link later used -->
 <!-- In box: Application to regression model, normal case -->
 
 <!-- Short argument, why maximizing Q leads to a better parameter estimation which has a higher *observed-data* (log-)likelihood. Simple proof using Jensen! -->
