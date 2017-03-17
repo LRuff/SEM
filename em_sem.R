@@ -4,6 +4,8 @@
 #data(chorizonDL, package = "VIM")
 #data(testdata, package = "VIM")
 
+library(mixtools)
+
 ####################
 ### EM Algorithm ###
 ####################
@@ -54,46 +56,49 @@ emstep <- function(data, indicator, params) {
   cov[1,2] <- cov[2,1] <-  (1/n)*(sum_xy - (sum_y*sum(x))/n)
   cov[2,2] <- (1/n)*(sum_yy - sum_y^2/n)
   
-  # Update data
-  data[,2] <- y
-  
   # Return data and params
-  return(list(data = data, params = list(mu = mu, cov = cov)))
+  return(params = list(mu = mu, cov = cov))
 }
 
-objective <- function(data, params) {
-  # Calculate 2D log likelihood
+objective <- function(data, indicator, params) {
+  # Calculate 2D log likelihood where x and y is observed
   const <- -log(2*pi)
   det <- -(1/2)*log(det(params$cov))
-  maha <- -(1/2)*mahalanobis(data, params$mu, params$cov)
-  return(sum(const + det + maha))
+  maha <- -(1/2)*mahalanobis(data[!indicator,], params$mu, params$cov)
+  log1 <- sum(const + det + maha)
+
+  # Calculate 1D log likelihood where just x is observed
+  const <- -(1/2)*log(2*pi)
+  det <- -(1/2)*log(params$cov[1,1])
+  maha <- -(1/2)*(data[indicator,][,1]-params$mu[1])^2/params$cov[1,1]
+  log2 <- sum(const + det + maha)
+
+  return(log1+log2)
 }
 
-em_algorithm <- function(data, tolerance = 0.00001) {
+em_algorithm <- function(data, tolerance) {
   
   params <- initialize(data)
   indicator <- is.na(y)
-  loglike <- NULL
-  vec_params <- list(params)
+  vecLoglike <- NULL
+  vecParams <- list(params)
   
   repeat {
     # EM step
-    result <- emstep(data, indicator, params)
-    data <- result$data # Data for next step
-    params <- result$params # Parameter for next step
-    vec_params <- append(vec_params, list(params))
+    params <- emstep(data, indicator, params)
+    vecParams <- append(vecParams, list(params))
     
     # Calculate objective (likelihood)
-    loglike <- append(loglike, objective(data, params))
+    vecLoglike <- append(vecLoglike, objective(data, indicator, params))
     
     # Check if convergence criterion is hit
-    last <- length(loglike)
-    if(last > 2 && abs(loglike[last] - loglike[last-1]) < tolerance) {
-      break;
+    last <- length(vecLoglike)
+    if(last >= 2 && abs(vecLoglike[last] - vecLoglike[last-1]) < tolerance) {
+      break
     }
   }
   
-  return(list(loglike = loglike, params = vec_params))
+  return(list(loglike = vecLoglike, params = vecParams))
 }
 
 # Data
@@ -109,7 +114,7 @@ y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
 data <- matrix(c(x,y), ncol = 2)
 
 # Run algorithm
-result <- em_algorithm(data, tolerance = 0.000001)
+result <- em_algorithm(data, tolerance = 10^-8)
 
 # Plot convergence of log likelihood
 plot(result$loglike, type = "l", xlab = "# of EM steps", ylab = "Log-Likelihood")
@@ -120,44 +125,91 @@ mu2 <- sapply(result$params, function(param){param$mu[2]})
 plot(mu2, type = "l", xlab = "# of EM steps", ylab = "mu_2")
 grid()
 
+# contour plot
+par(mfrow=c(1,4))
+for(i in c(1,2,3,length(result$params))) {
+  plot(data, pch = 20, xlim = c(-10,45), ylim = c(15,85),
+       xlab = "x", ylab = "y", main = paste("EM iteration", i))
+  grid()
+  for(j in 1:9) ellipse(mu=result$params[[i]]$mu, sigma=result$params[[i]]$cov,
+                        alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
+}
+par(mfrow=c(1,1))
+
 #####################
 ### SEM Algorithm ###
 #####################
 
-sem_algorithm <- function(data, params) {
-  # !! Do it just for mu2 !! TODO: Extend for general case
+calculateRatio <- function(data, params, i, j, tolerance) {
   indicator <- is.na(data[,2])
-  r_mu <- NULL
+  vecR <- NULL
   
-  # MLE estimate of EM
-  mle <- tail(params, 1)[[1]] # Get last parameter element
+  # Get last parameter element (MLE)
+  mle <- unlist(tail(params, 1)[[1]])
   
-  for(i in 1:(length(params)-1)) { # TODO: replace by repeat and convergence criterion
+  t <- 1
+  repeat {
     # Get current state of theta from em computation
-    theta_t <- params[[i]]
+    theta_t <- unlist(params[[t]])
     
     # Define theta_i as the final mle and replace i-th value with current state
     theta_t_i <- mle
-    theta_t_i$mu[2] <- theta_t$mu[2]
+    theta_t_i[[i]] <- theta_t[[i]]
     
-    # Do EM step using theta_i
-    res <- emstep(data, indicator, theta_t_i)
-    theta_t_1_i <- res$params
-    data <- res$data
+    # Do EM step using theta_i, first convet parameters in list and then do step
+    names(theta_t_i) <- NULL
+    paramList <- list(mu = theta_t_i[1:2], cov = matrix(theta_t_i[3:6], nrow = 2, ncol = 2))
+    theta_t_1_i <- unlist(emstep(data, indicator, paramList))
     
     # Calculate ratio
-    r_mu <- append(r_mu, (theta_t_1_i$mu[2] - mle$mu[2])/(params[[i]]$mu[2] - mle$mu[2]))
+    #print(paste(theta_t_1_i[[j]],mle[[j]],theta_t[[i]],mle[[i]]))
+    vecR <- append(vecR, (theta_t_1_i[[j]] - mle[[j]])/(theta_t[[i]] - mle[[i]]))
+    
+    # Check if convergence criterion is hit
+    last <- length(vecR)
+    if(last > 2 && abs(vecR[last] - vecR[last-1]) < tolerance) {
+      break
+    }
+    t <- t+1
+    if(t > length(result$params)) {
+      break
+    }
   }
   
-  return(r_mu)
+  # Just return last rate
+  return(vecR[length(vecR)])
 }
 
-r_mu2 <- sem_algorithm(data, result$params)
+calculateDM <- function(data, params, estimates, tolerance) {
+  # Number of parameters to calculate variance for
+  d <- length(estimates)
+  
+  # Define empty DM matrix
+  DM <- matrix(nrow = d, ncol = d)
+  
+  # Calculate any r_ij and store in DM
+  for(i in 1:d) {
+    for(j in 1:d) {
+      print(paste(i,j))
+      DM[i,j] <- calculateRatio(data, params, estimates[i], estimates[j], tolerance)
+    }
+  }
+  
+  # Return whole DM
+  return(DM)
+}
 
+sem_algorithm <- function(data, params, estimates, tolerance) {
+  # Get DM matrix
+  DM <- calculateDM(data, params, estimates, tolerance)
+  
+  # Calculate I_oc
+  # ...
+}
 
-
-
-
+# 1: mu1, 2: mu2, 3: s_xx, 4/5: s_xy, 6: s_yy
+DM <- calculateDM(data, params_trans, c(2,6), 10^-4)
+#r_mu2 <- sem_algorithm(data, result$params, c(2,4,6), 10^-4)
 
 
 
