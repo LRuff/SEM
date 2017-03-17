@@ -144,93 +144,94 @@ M(\bm \theta^{(t)}) &\approx M(\bm{\hat \theta}) + DM (\bm \theta^{(t)} - \bm{\h
 
 doing a taylor approximation of $M(\bm \theta^{(t)})$ at $\bm{\hat \theta}$ stopping after the linear term, where
 
-$$
+\begin{equation}
+\label{eq:rate}
 DM = \left.\left( \frac{\partial M_j(\bm \theta)}{\partial \theta_i} \right) \right|_{\bm \theta = \bm{\hat \theta}}
-$$
+\end{equation}
 
 is the $d \times d$ Jacobian matrix of $M(\bm \theta) = (M_1(\bm \theta), \ldots, M_d(\bm \theta))$ evaluated at $\bm{\hat \theta}$. Hence, in the neighborhood of $\bm{\hat \theta}$, the EM algorithm converges linearly with rate matrix $DM$.
 
 
 # The SEM algorithm
 
-In comparison to multiple imputation methods, asymptotic variance-covariance matrices of the parameter estimaton (e.g. standard errors) are not given automatically when using the EM algorithm. Instead, additional steps are required in order to compute standard errors of the estimates. One approach introduced by @meng1991sem is the so-called *supplemented EM* or *SEM* algorithm. This procedure obtains numerically stable asymptotic variance-covariance matrices only from computing the complete-data asymptotic variance-covariance matrix, using code for the E and M steps of EM, and standard matrix operations. The key idea of the SEM algorithm is effectively to numerically differentiate the implicit mapping $\theta \to M(\theta)$ defined by the EM algorithm, i.e. defining a method to numerically approximate $DM$.
+In comparison to multiple imputation methods, asymptotic variance-covariance matrices of the parameter estimaton $\bm{\hat\theta}$ (e.g. standard errors) are not given automatically when using the EM algorithm. Instead, additional steps are required in order to compute standard errors of the estimates. One approach introduced by @meng1991sem is the so-called *supplemented EM* or *SEM* algorithm. This procedure obtains numerically stable asymptotic variance-covariance matrices only from computing the complete-data asymptotic variance-covariance matrix, using code for the E and M steps of EM, and standard matrix operations. The key idea of the SEM algorithm is effectively to numerically differentiate the implicit mapping $\bm \theta \mapsto M(\bm \theta)$ defined by the EM algorithm, i.e. defining a method to numerically approximate the Jacobian matrix $DM$.
 
 
-## Asymptotic variance-covariance matrix of $(\theta - \hat \theta)$ based on $\Yobs$
+## Asymptotic variance-covariance matrix of $(\bm \theta - \bm{\hat \theta})$ based on $\bm \Yobs$
 
-The desired asymptotic variance-covariance matrix of $(\theta - \hat \theta)$ based on $\Yobs$ is given by the inverse of the observed information matrix, i.e.
+The desired asymptotic variance-covariance matrix of $(\bm \theta - \bm{\hat \theta})$ based on $\bm \Yobs$ is given by the inverse of the observed information matrix, i.e.
 
 $$
-V = \I_{o}^{-1}(\hat \theta \, | \, \Yobs),
+V = \I_{o}^{-1}(\bm{\hat \theta} \, | \, \bm \Yobs),
 $$
 
-where the observed information matrix $\I_{o}(\theta \, | \, \Yobs)$ is the negative second derivative of the log-likelihood of the observed data,
+where the observed information matrix $\I_{o}(\bm \theta \, | \, \bm \Yobs)$ is the negative Hessian of the log-likelihood of the observed data,
 
 \begin{equation}
 \label{eq:Iobs}
-\I_{o}(\theta \, | \, \Yobs) = -\frac{\partial^2 \log f(\Yobs \, | \, \theta)}{\partial\theta \, \partial\theta}.
+\I_{o}(\bm \theta \, | \, \bm \Yobs) = -\frac{\partial^2 \log f(\bm \Yobs \, | \, \bm \theta)}{\partial\bm \theta \cdot \partial \bm \theta}.
 \end{equation}
 
-The problem is that it can often be very difficult to evaluate (\ref{eq:Iobs}) directly. Therefore, another representation of $V$ is preferred. Precisely, we will derive the following representation of $V$:
+The problem is that it can often be very difficult to evaluate (\ref{eq:Iobs}) directly. Therefore, another representation of $V$ is preferred. Precisely, we will derive the following decomposition of $V$:
 
 \begin{equation}
 \label{eq:V}
-V = \I_{oc}^{-1} + \Delta V, 
+V = V_c + \Delta V \qquad \text{ with } \, V_c = \I_{oc}^{-1},
 \end{equation}
 
-where
+where $V_c$ is the asymptotic complete-data variance-covariance matrix given by the inverse of the conditional expectation over $f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)$ of the complete-data information matrix evaluated at $\bm \theta = \bm{\hat \theta}$, that is
 
 $$
-\I_{oc} = \E[\I_{o}(\theta \, | \, Y) \, | \, \Yobs, \theta ] \bigg\rvert_{\theta = \hat \theta}, \qquad \I_{o}(\theta \, | \, Y) = -\frac{\partial^2 \log f(Y \, | \, \theta)}{\partial\theta \, \partial\theta},
+\I_{oc} = \E[\I_{c}(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta ] \bigg\rvert_{\bm \theta = \bm{\hat \theta}} \; , \qquad \I_{c}(\bm \theta \, | \, \bm Y) = -\frac{\partial^2 \log f(\bm Y \, | \, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta},
 $$
 
-is the conditional expectation w.r.t. $\Yobs$ of the complete-data observed information matrix $\I_{o}(\theta \, | \, Y)$ evaluated at $\theta = \hat \theta$ and
+and $\Delta V$, the increase due to missing data, is given by
 
 \begin{equation}
 \label{eq:DeltaV}
-\Delta V =  \I_{oc}^{-1} \, DM \, (I_d - DM)^{-1},
+\Delta V =  V_c \, DM \, (I_d - DM)^{-1},
 \end{equation}
 
-where $DM$ is the rate matix from (\ref{eq:rate}) and $I_d$ is the $d$-dimensional identity matrix.
+where $DM$ is the rate matix from (\ref{eq:rate}) and $I_d$ is the $d$-dimensional identity matrix. We will now show, why the decomposition in (\ref{eq:V}) holds.
 
 <!-- TODO: How is the (well-known) asymptotic variance V derived? -->
 <!-- explain why only large sample i.e. asymptotic -->
 <!-- Explain relation to fisher information matrix (regularity / large sample) -->
 
-## Proof that $V = \I_{oc}^{-1} + \Delta V$
+## Proof that $V = V_c + \Delta V$
 
 From Bayes' rule on densities, we have the factorization
 
 $$
-f(Y \, | \, \theta) = f(\Yobs \, | \, \theta) \, f(\Ymis \, | \, \Yobs, \theta),
+f(\bm Y \, | \, \bm \theta) = f(\bm \Yobs \, | \, \bm \theta) \, f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta),
 $$
 
-and therefore it follows for the log-likelihood of $\theta$ given $\Yobs$
+and therefore it follows for the log-likelihood of $\bm \theta$ given $\bm \Yobs$
 
 \begin{align*}
-L(\theta \, | \, \Yobs) &= \log f(\Yobs \, | \, \theta)\\
-&= \log f(Y \, | \, \theta) - \log f(\Ymis \, | \, \Yobs, \theta) = L(\theta \, | \, Y) - \log f(\Ymis \, | \, \Yobs, \theta).
+L(\bm \theta \, | \, \bm \Yobs) &= \log f(\bm \Yobs \, | \, \bm \theta)\\
+&= \log f(\bm Y \, | \, \bm \theta) - \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta) = L(\bm \theta \, | \, \bm Y) - \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta).
 \end{align*}
 
-Taking second derivatives and the expectation over the conditional distribution $f(\Ymis \, | \, \Yobs , \theta)$, we get that
+Taking second derivatives and the expectation over the conditional distribution $f(\bm \Ymis \, | \, \bm \Yobs , \bm \theta)$, we further get that
 
 \begin{align*}
-&&\E\left[\frac{\partial^2 L(\theta \, | \, \Yobs)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] &= \E\left[\frac{\partial^2 L(\theta \, | \, Y)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] - \E\left[\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right]\\
-\iff &&-\frac{\partial^2 L(\theta \, | \, \Yobs)}{\partial\theta \, \partial\theta} &= \E\left[-\frac{\partial^2 L(\theta \, | \, Y)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] - \E\left[-\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] \\
-\iff &&\I_o(\theta \, | \, \Yobs) &= \E\left[\I_o(\theta \, | \, Y) \, | \, \Yobs, \theta \right] - \E\left[-\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right].
+&&\E\left[\frac{\partial^2 L(\bm \theta \, | \, \bm \Yobs)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] &= \E\left[\frac{\partial^2 L(\bm \theta \, | \, \bm Y)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] - \E\left[\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right]\\
+\iff &&-\frac{\partial^2 L(\bm \theta \, | \, \bm \Yobs)}{\partial \bm \theta \cdot \partial \bm \theta} &= \E\left[-\frac{\partial^2 L(\bm \theta \, | \, \bm Y)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] - \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] \\
+\iff &&\I_o(\bm \theta \, | \, \bm \Yobs) &= \E\left[\I_c(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta \right] - \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial\bm \theta \cdot \partial\bm \theta} \, | \, \bm \Yobs, \bm \theta \right].
 \end{align*}
 
-Evaluating this equation at $\theta = \hat \theta$ gives
+Evaluating this equation at $\bm \theta = \bm{\hat \theta}$ gives
 
 \begin{equation}
 \label{eq:informationprinciple}
-\I_o(\hat \theta \, | \, \Yobs) = \I_{oc} - \I_{om},
+\I_o(\bm{\hat \theta} \, | \, \bm \Yobs) = \I_{oc} - \I_{om},
 \end{equation}
 
 where 
 
 $$
-\I_{om} = \left. \E\left[-\frac{\partial^2 \log f(\Ymis \, | \, \Yobs, \theta)}{\partial\theta \, \partial\theta} \, | \, \Yobs, \theta \right] \right\rvert_{\theta = \hat \theta}
+\I_{om} = \left. \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial\bm \theta \cdot \partial\bm \theta} \, | \, \bm \Yobs, \bm \theta \right] \right\rvert_{\bm \theta = \bm{\hat \theta}}
 $$
 
 can be viewed as the missing information. Equation (\ref{eq:informationprinciple}) is also called *missing information principle* with the nice interpretation
@@ -239,7 +240,7 @@ $$
 \textit{observed information} = \textit{complete information } - \textit{missing information}.
 $$
 
-Besides, @dempster1977maximum showed that when maximizing $Q(\theta \, | \, \theta^{(t)})$ in the M step of the EM algorithm, i.e. when setting the first derivative equal to zero, it holds that
+Besides, @dempster1977maximum showed that when maximizing $Q(\bm \theta \, | \, \bm \theta^{(t)})$ in the M step of the EM algorithm, i.e. when setting the first derivative of $Q(\bm \theta \, | \, \bm \theta^{(t)})$ w.r.t. $\bm \theta$ equal to zero, it holds that
 
 $$
 DM = \I_{om} \I_{oc}^{-1}.
@@ -248,25 +249,26 @@ $$
 This can be used with (\ref{eq:informationprinciple}) to obtain
 
 $$
-\I_o(\hat \theta \, | \, \Yobs) = \I_{oc} - \I_{om} = (I_d - \I_{om}\I_{oc}^{-1})\I_{oc} = (I_d - DM)\I_{oc}.
+\I_o(\bm{\hat \theta} \, | \, \bm \Yobs) = \I_{oc} - \I_{om} = (I_d - \I_{om}\I_{oc}^{-1})\I_{oc} = (I_d - DM)\I_{oc}.
 $$
 
-Finally, by inverting both sides of the equation, we get
+Finally, by inverting both sides of this equation, we get the decomposition of the asymptotic variance-covariance matrix based on $\bm \Yobs$:
 
 \begin{align*}
-V = \I_o^{-1}(\hat \theta \, | \, \Yobs) &= \I_{oc}^{-1}(I_d - DM)^{-1}\\
+V = \I_o^{-1}(\bm{\hat \theta} \, | \, \bm \Yobs) &= \I_{oc}^{-1}(I_d - DM)^{-1}\\
 &= \I_{oc}^{-1}(I_d - DM + DM)(I_d - DM)^{-1}\\
-&= \I_{oc}^{-1} + \I_{oc}^{-1} DM (I_d - DM)^{-1} = \I_{oc}^{-1} + \Delta V.
+&= \I_{oc}^{-1} + \I_{oc}^{-1} DM (I_d - DM)^{-1}\\
+&= \I_{oc}^{-1} + \Delta V = V_c + \Delta V.
 \end{align*}
 
-This representation of $V$ is the ansatz of the SEM algorithm, which consists of three parts: (1) the evaluation of $\I_o^{-1}$, (2) the numerical approximation of $DM$, and (3) using (\ref{eq:V}) with (\ref{eq:DeltaV}) to estimate $V$. We go into the evaluation of $\I_o^{-1}$ in the next subsection.
+This representation of $V$ is the ansatz of the SEM algorithm, which consists of three parts: (1) the evaluation of $V_c = \I_{oc}^{-1}$, (2) the numerical approximation of $DM$, and (3) using (\ref{eq:V}) with (\ref{eq:DeltaV}) to estimate $V$. We look into the evaluation of $V_c = \I_{oc}^{-1}$ in the next subsection.
 
 <!-- Optional TODO: proof 2.4.5 -->
 
 
-## Evaluation of $\I_o^{-1}$ for exponential families
+## Evaluation of $V_c$ for exponential families
 
-We consider the evaluation of $\I_o^{-1}$ for the case that the complete-data density $f(Y \, | \, \theta)$ is from an exponential family, since this is most common in practical applications. This means that the complete-data density has the following representation
+We consider the evaluation of $V_c = \I_{oc}^{-1}$ for the case that the complete-data density $f(\bm Y \, | \, \theta)$ is from an exponential family, since this is most common in practical applications. This means that the complete-data density has the following representation
 
 $$
 f(Y \, | \, \theta) = h(Y) \exp\{\eta(\theta)^TT(Y) - A(\theta)\} = h(Y) \exp\left\{\sum_{i=1}^s\eta_i(\theta)T_i(Y) - A(\theta)\right\},
@@ -293,7 +295,6 @@ component wise derivation of matrix
 <!-- ## Notes -->
 <!-- It is important to emphasize that the variance-covariance matrix obtained from SEM is based on the second derivatives of the observed-data log-likelihood and only is inferentially valid asymptotically, i.e. for large samples. -->
 <!-- The more normal the likelihood, the better the approximation. Therefore, transformations are useful in order to improve the results. (e.g. log(variance), etc.) -->
-<!-- Switch notation from $\theta^*$ to $\hat \theta$? This is more consistent with general statistical notation... -->
 
 ## The algorithm
 
