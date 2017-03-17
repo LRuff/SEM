@@ -301,7 +301,45 @@ component wise derivation of matrix
 
 # Application
 
-stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em)
+<!-- stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em) -->
+
+## Bivariate normal
+
+### No missing information in some components
+
+In a bivariate case, where only one variable contains missing data and the other variable is complete, the calculation of $V$ changes. In this case the parameter $\bm\theta$ for the complete data converges in just one step, indipendent of the initial value. The denominator of (??) will directly be zero and therefore a rate cannot be obtained using SEM. Since we know that $M(\bm\theta)$ for the complete data component is constant, we can directly state that $r_{ij} = 0$ for that component and its calculation is not necessary. Therefore the matrix $DM$ is given by
+
+$$
+DM = \begin{pmatrix} 0 & A\\ 0 & DM^* \end{pmatrix},
+$$
+
+where $DM^*$ is a quadratic submatrix of size $d_2 \times d_2$ containing the parameter rates for the incomplete data and $A$ is a matrix for size $d_1 \times d_2$. The upper left area is a $d_1 \times d_1$ matrix, where $d_1$ is the dimension of the parameters from the complete data and $d_2$ the dimension of the missing data parameters, where holds that $d_1 + d_2 = d$. We If we assume that $I_{oc}^{-1}$ is given by
+
+$$
+I_{oc}^{-1} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 \end{pmatrix},
+$$
+
+the variance $V$ is can be stated as
+
+$$
+V = I_{oc}^{-1} + \begin{pmatrix} 0 & 0\\ 0 & \Delta V^* \end{pmatrix} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 + \Delta V^* \end{pmatrix}.
+$$
+
+The matrix
+
+$$
+\Delta V^* = (G_3 - G_2^TG_1^{-1})G_2) DM^*(I_{d_2}-DM^*)^{-1}
+$$
+
+is proven in appendix of @meng1991sem, where matrix $A$ is identified with $A = -G_1^{-1} G_2 DM^*$.
+
+## Real data application
+
+In this section we want to introduce the main algorithm for EM and SEM computation. Afterwards the results of @meng1991sem in their bivariate example will be reproduced to verify, that our implementation runs correctly.
+
+
+
+
 
 \newpage
 
