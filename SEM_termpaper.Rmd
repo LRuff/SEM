@@ -92,70 +92,64 @@ The Expectation Maximization (EM) algorithm is an iterative procedure to maximiz
 
 ## Objective and algorithm
 
-Let the model of the complete data $\bm Y$, which has an observed part $\bm \Yobs$ and missing values $\bm \Ymis$, that is $\bm Y = (\bm \Yobs, \bm \Ymis)$, be described by the complete-data density $f(\bm Y \, | \, \theta)$, $\theta = (\theta_1, ..., \theta_d)$, and denote the complete-data log-likelihood by
+Let the model of the complete data $\bm Y$, which has an observed part $\bm \Yobs$ and missing values $\bm \Ymis$, that is $\bm Y = (\bm \Yobs, \bm \Ymis)$, be described by the complete-data density $f(\bm Y \, | \, \bm \theta)$, $\bm \theta = (\theta_1, ..., \theta_d)$, and denote the complete-data log-likelihood by
 
 $$
-L(\theta \, | \, \bm Y) = \log f(\bm Y \, | \, \theta),
+L(\bm \theta \, | \, \bm Y) = \log f(\bm Y \, | \, \bm \theta),
 $$
 
-that is we assume the missing-data mechanism to be ignorable. The EM algorithm finds the maximum likelihood estimate (MLE) of the parameter $\theta$ of the *observed* likelihood $f(\bm \Yobs \, | \,\theta)$, which we define by $\hat \theta$. The key feature of the EM algorithm is, that this maximization of the observed (log-)likelihood is not carried out directly, but indirectly and iteratively by maximizing the conditional expectation over $f(\bm \Ymis \, | \, \bm \Yobs, \theta^{(t)})$ of the complete-data log-likelihood $L(\theta \, | \, \bm Y)$, where $\theta^{(t)}$ is the parameter value at the $t$-th iteration. The algorithm starts with some initial parameter value $\theta^{(0)}$.
+that is we assume the missing-data mechanism to be ignorable. The EM algorithm finds the maximum likelihood estimate (MLE) of the parameter $\bm \theta$ of the *observed* likelihood $f(\bm \Yobs \, | \, \bm \theta)$, which we define by $\bm{\hat \theta}$. The key feature of the EM algorithm is, that this maximization of the observed (log-)likelihood is not carried out directly, but indirectly and iteratively by maximizing the conditional expectation over $f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta^{(t)})$ of the complete-data log-likelihood $L(\bm \theta \, | \, \bm Y)$, where $\bm \theta^{(t)}$ is the parameter value at the $t$-th iteration. The algorithm starts with some initial parameter value $\bm \theta^{(0)}$.
 
-**Expectation step**. The expectation step (*E step*) computes the conditional expectation of the complete-data log-likelihood over $f(\bm \Ymis \, | \, \bm \Yobs, \theta^{(t)})$ using the parameter of iteration $t$, that is
-
-$$
-Q(\theta \, | \, \theta^{(t)}) = \E[L(\theta \, | \, \bm Y) \, | \, \bm \Yobs, \theta^{(t)}]  = \int L(\theta \, | \, \bm Y) f(\bm \Ymis \, | \, \bm \Yobs, \theta^{(t)}) \, d\bm \Ymis.
-$$
-
-Therefore, the E step estimates the missing data parts of the complete-data log-likelihood by the expectational value using the observed data and the current best parameter estimates $\theta^{(t)}$ of the model.
-
-
-**Maximization step**. In the Maximization step (*M step*) the objective of the E step is maximized in $\theta$ in order to obtain an update of the model parameters, which means solving
+**Expectation step**. The expectation step (*E step*) computes the conditional expectation of the complete-data log-likelihood over $f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta^{(t)})$ using the parameter of iteration $t$, that is
 
 $$
-\theta^{(t+1)} = \underset{\theta}{\argmax} \,Q(\theta|\theta^{(t)}), \qquad \text{ i.e. } \, Q(\theta^{(t+1)}|\theta^{(t)}) \ge Q(\theta|\theta^{(t)}), \quad \forall \theta.
+Q(\bm \theta \, | \, \bm \theta^{(t)}) = \E[L(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta^{(t)}]  = \int L(\bm \theta \, | \, \bm Y) f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta^{(t)}) \, d\bm \Ymis.
 $$
 
-The updated parameters $\theta^{(t+1)}$ are always better in the sense, that they have a greater or equal observed-data (log-)likelihood than the previous parameters $\theta^{(t+1)}$, that is $L(\theta^{(t+1)} \, | \, \bm \Yobs) \geq L(\theta^{(t)} \, | \, \bm \Yobs)$.
-After obtaining the parameter update $\theta^{(t)}$, it can be used in the following E and M step which is the next EM iteration.
+Therefore, the E step estimates the missing data parts of the complete-data log-likelihood by the expectational value using the observed data and the current best parameter estimates $\bm \theta^{(t)}$ of the model.
 
-<!-- In box: Application to regression model, normal case -->
+
+**Maximization step**. In the Maximization step (*M step*) the objective of the E step is maximized in $\bm \theta$ in order to obtain an update of the model parameters, which means solving
+
+$$
+\bm \theta^{(t+1)} = \underset{\bm \theta}{\argmax} \,Q(\bm \theta \, | \, \bm \theta^{(t)}), \qquad \text{ i.e. } \, Q(\bm \theta^{(t+1)} \, | \, \bm \theta^{(t)}) \geq Q(\bm \theta \, | \, \bm \theta^{(t)}), \quad \forall \bm \theta.
+$$
+
+The updated parameters $\bm \theta^{(t+1)}$ are always better in the sense, that they have a greater or equal observed-data (log-)likelihood than the previous parameters $\bm \theta^{(t+1)}$, that is $L(\bm \theta^{(t+1)} \, | \, \bm \Yobs) \geq L(\bm \theta^{(t)} \, | \, \bm \Yobs)$.[^1]
+After obtaining the parameter update $\bm \theta^{(t+1)}$, it can be used in the following E and M step which conduct the next EM iteration.  
+
+For the large class of exponential families, the EM algorithm is usually easy to implement: The M step is identical to the computation of ML estimates from the complete-data log-likelihood $L(\bm \theta \, | \, \bm Y)$; the E step for most problems only involves calculating the conditional expectation of the sufficient statistics, which are easy to compute from the moments of the conditional distribution.
 
 ## Rate of convergence
 
-The EM algorithm updates the parameter in every iteration of E step and M step from $\theta^{(t)}$ to $\theta^{(t+1)}$. To describe this behavior we can define a mapping
+The EM algorithm updates the parameter in every iteration of E step and M step from $\bm \theta^{(t)}$ to $\bm \theta^{(t+1)}$. To describe this behavior we can define a mapping
 
 $$
-M: \Theta \to \Theta,\; \theta \mapsto M(\theta)\quad \text{such that}\quad \theta^{(t+1)} = M(\theta^{(t)}),
+M: \Theta \to \Theta,\; \bm \theta \mapsto M(\bm \theta)\quad \text{such that}\quad M(\bm \theta^{(t)}) = \bm \theta^{(t+1)}, \, t = 0, 1, \ldots \;
 $$
 
-where $\Theta$ is the parameter space. While $\theta^{(t)}$ converges to $\theta^*$, we can state
+where $\Theta$ is the parameter space. If $\left(\bm \theta^{(t)}\right)$ converges to $\bm{\hat \theta}$ and $M$ is continuous, we have
 
 $$
-\theta^* = M(\theta^*),
+M(\bm{\hat \theta}) = \bm{\hat \theta},
 $$
 
-where $\theta^*$ is a fixed point of $M$.
-
-To get a rate of convergence, we need a derivation of $M$, which we call $DM$. Therefore we do a taylor approximation of $\theta^{(t+1)}$ in the neighborhood of $\theta^*$ and stop after the linear term, which results in
+that is $\bm{\hat \theta}$ is a fixed point of $M$. Thus, in the neighborhood of $\bm{\hat \theta}$, we get 
 
 \begin{align*}
-\theta^{(t+1)} &= M(\theta^*) + M'(\theta^*) (\theta^{(t+1)} - \theta^*) + \frac{1}{2} M''(\theta^*)(\theta^{(t+1)} - \theta^*)^2 + ...\\
-&\approx \theta^* + M'(\theta^*) (\theta^{(t+1)} - \theta^*).
+M(\bm \theta^{(t)}) &\approx M(\bm{\hat \theta}) + DM (\bm \theta^{(t)} - \bm{\hat \theta})\\
+\iff \qquad \bm \theta^{(t+1)} &\approx \bm{\hat \theta} + DM (\bm \theta^{(t)} - \bm{\hat \theta})\\
+\iff \, \bm \theta^{(t+1)} - \bm{\hat \theta} &\approx DM (\bm \theta^{(t)} - \bm{\hat \theta})
 \end{align*}
 
-Rearraning the equation finally gives
+doing a taylor approximation of $M(\bm \theta^{(t)})$ at $\bm{\hat \theta}$ stopping after the linear term, where
 
-\begin{equation}
-\label{eq:rate}
-M'(\theta^*) = DM \approx \frac{\theta^{(t+1)} - \theta^*}{\theta^{(t)} - \theta^*},\quad \text{where}\quad DM = \left( \frac{\partial M_j(\theta)}{\partial \theta} \right) \big|_{\theta = \theta^*}.
-\end{equation}
+$$
+DM = \left.\left( \frac{\partial M_j(\bm \theta)}{\partial \theta_i} \right) \right|_{\bm \theta = \bm{\hat \theta}}
+$$
 
-We call $DM$ the *rate matrix*.
+is the $d \times d$ Jacobian matrix of $M(\bm \theta) = (M_1(\bm \theta), \ldots, M_d(\bm \theta))$ evaluated at $\bm{\hat \theta}$. Hence, in the neighborhood of $\bm{\hat \theta}$, the EM algorithm converges linearly with rate matrix $DM$.
 
-<!-- In box: Application to regression model, normal case -->
-
-<!-- Short argument, why maximizing Q leads to a better parameter estimation which has a higher *observed-data* (log-)likelihood. Simple proof using Jensen! -->
-<!-- The EM algorithm converges linearly with rate matrix DM -->
 
 # The SEM algorithm
 
