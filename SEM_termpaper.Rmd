@@ -8,6 +8,7 @@ output:
 header-includes:
 - \usepackage[english]{babel}
 - \usepackage{setspace}
+- \usepackage{bm}
 - \hyphenation{}
 - \pagenumbering{arabic}
 - \numberwithin{equation}{section}
@@ -84,47 +85,38 @@ While methods like resampling or algebraic analysis mostly depends on iid data, 
 
 In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
 
+
 # A Recap of the EM Algorithm
 
-The EM algorithm consists of two steps, namely the *expectation step* and the *maximization step*. Both steps are applied alternately until some convergence criterion is reached. Depending on given data structure, especially the missing data, we can find a *rate of convergence* $DM$ for the parameters. Both aspects of the EM algorithm are explained in this section.
+The Expectation Maximization (EM) algorithm is an iterative procedure to maximize the likelihood of a model with missing or latent variables. It consists of two steps, namely the *expectation step* and the *maximization step*. Both steps are applied alternately until some convergence criterion is reached. Depending on the given data structure, especially the missing data, we can find a *rate of convergence* $DM$ for the parameters. Both aspects of the EM algorithm are explained in this section.
 
 ## Objective and algorithm
 
-The model for the complete data is given by
+Let the model of the complete data $\bm Y$, which has an observed part $\bm \Yobs$ and missing values $\bm \Ymis$, that is $\bm Y = (\bm \Yobs, \bm \Ymis)$, be described by the complete-data density $f(\bm Y \, | \, \theta)$, $\theta = (\theta_1, ..., \theta_d)$, and denote the complete-data log-likelihood by
 
 $$
-f(Y|\theta),\quad \theta = (\theta_1, ..., \theta_d)
+L(\theta \, | \, \bm Y) = \log f(\bm Y \, | \, \theta),
 $$
 
-and $Y$ can be separated into a observed $\Yobs$ and a missed part $\Ymis$, such that $Y = (\Yobs, \Ymis)$. We define $\theta^*$ as the maximum likelihood estima (MLE) of the parameter $\theta$. The estimation is based on the observed data $\Yobs$ and therefore maximizes $f(\Yobs|\theta)$. The algorithm starts with an initial parameter value $\theta^{(0)}$, which becomes $\theta^{(t)}$ at the `t`'hs EM iteration, which converges to $\theta^*$.
+that is we assume the missing-data mechanism to be ignorable. The EM algorithm finds the maximum likelihood estimate (MLE) of the parameter $\theta$ of the *observed* likelihood $f(\bm \Yobs \, | \,\theta)$, which we define by $\hat \theta$. The key feature of the EM algorithm is, that this maximization of the observed (log-)likelihood is not carried out directly, but indirectly and iteratively by maximizing the conditional expectation over $f(\bm \Ymis \, | \, \bm \Yobs, \theta^{(t)})$ of the complete-data log-likelihood $L(\theta \, | \, \bm Y)$, where $\theta^{(t)}$ is the parameter value at the $t$-th iteration. The algorithm starts with some initial parameter value $\theta^{(0)}$.
 
-<!-- explain objective of em, how to obtain Q -->
-
-**Expectation step**. The idea of the so called expectation step (*E step*) is to obtain the expectation value of the log-likelihood function related to the missing data, given the observed data and the parameter at iteration `t`, which is given by
+**Expectation step**. The expectation step (*E step*) computes the conditional expectation of the complete-data log-likelihood over $f(\bm \Ymis \, | \, \bm \Yobs, \theta^{(t)})$ using the parameter of iteration $t$, that is
 
 $$
-Q(\theta|\theta^{(t)}) = \E_{\Ymis|\Yobs,\theta^{(t)}}[L(\theta|Y)]  = \E_{\Ymis|\Yobs,\theta^{(t)}}[\ln f(Y|\theta)],
+Q(\theta \, | \, \theta^{(t)}) = \E[L(\theta \, | \, \bm Y) \, | \, \bm \Yobs, \theta^{(t)}]  = \int L(\theta \, | \, \bm Y) f(\bm \Ymis \, | \, \bm \Yobs, \theta^{(t)}) \, d\bm \Ymis.
 $$
 
-while the objective can be calculated by
+Therefore, the E step estimates the missing data parts of the complete-data log-likelihood by the expectational value using the observed data and the current best parameter estimates $\theta^{(t)}$ of the model.
+
+
+**Maximization step**. In the Maximization step (*M step*) the objective of the E step is maximized in $\theta$ in order to obtain an update of the model parameters, which means solving
 
 $$
-\E_{\Ymis|Yobs,\theta^{(t)}}[L(\theta|Y)] = \int L(\theta|Y) f(\Ymis|\Yobs,\theta=\theta^{(t)})\,d\Ymis.
+\theta^{(t+1)} = \underset{\theta}{\argmax} \,Q(\theta|\theta^{(t)}), \qquad \text{ i.e. } \, Q(\theta^{(t+1)}|\theta^{(t)}) \ge Q(\theta|\theta^{(t)}), \quad \forall \theta.
 $$
 
-**Minimization step**. In the Minimization step (*M step*) the objective of the E step will be maximized, which means that
-
-$$
-Q(\theta^{(t+1)}|\theta^{(t)}) \ge Q(\theta|\theta^{(t)}), \quad \forall \theta.
-$$
-
-More clearly the parameter $\theta^{(t+1)}$ is obtained by 
-
-$$
-\theta^{(t+1)} = \underset{\theta}{\argmax} \,Q(\theta|\theta^{(t)}).
-$$
-
-It means that we search for $\theta^{(t+1)}$ which maximizes the objective, given $\theta^{(t)}$ and we can now search for $Q(\theta|\theta^{(t+1)})$ using the E step, which starts the next iteration.
+The updated parameters $\theta^{(t+1)}$ are always better in the sense, that they have a greater or equal observed-data (log-)likelihood than the previous parameters $\theta^{(t+1)}$, that is $L(\theta^{(t+1)} \, | \, \bm \Yobs) \geq L(\theta^{(t)} \, | \, \bm \Yobs)$.
+After obtaining the parameter update $\theta^{(t)}$, it can be used in the following E and M step which is the next EM iteration.
 
 <!-- In box: Application to regression model, normal case -->
 
@@ -318,6 +310,9 @@ component wise derivation of matrix
 stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em)
 
 \newpage
+
+<!--Footnotes-->
+[^1]: One can show that $L(\theta^{(t+1)} \, | \, \bm \Yobs) - L(\theta^{(t)} \, | \, \bm \Yobs) \geq 0$ using Jensen's inequality. See for example @dempster1977maximum for a detailed proof.
 
 
 <!-- References -->
