@@ -314,7 +314,7 @@ $$
 DM = \begin{pmatrix} 0 & A\\ 0 & DM^* \end{pmatrix},
 $$
 
-where $DM^*$ is a quadratic submatrix of size $d_2 \times d_2$ containing the parameter rates for the incomplete data and $A$ is a matrix for size $d_1 \times d_2$. The upper left area is a $d_1 \times d_1$ matrix, where $d_1$ is the dimension of the parameters from the complete data and $d_2$ the dimension of the missing data parameters, where holds that $d_1 + d_2 = d$. We If we assume that $I_{oc}^{-1}$ is given by
+where $DM^*$ is a quadratic submatrix of size $d_2 \times d_2$ containing the parameter rates for the incomplete data and $A$ is a matrix of size $d_1 \times d_2$. The upper left area is a $d_1 \times d_1$ matrix, where $d_1$ is the dimension of the parameters from the complete data and $d_2$ the dimension of the missing data parameters, where holds that $d_1 + d_2 = d$. We If we assume that $I_{oc}^{-1}$ is given by
 
 $$
 I_{oc}^{-1} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 \end{pmatrix},
