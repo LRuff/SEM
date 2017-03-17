@@ -109,7 +109,7 @@ $$
 Therefore, the E step estimates the missing data parts of the complete-data log-likelihood by the expectational value using the observed data and the current best parameter estimates $\bm \theta^{(t)}$ of the model.
 
 
-**Maximization step**. In the Maximization step (*M step*) the objective of the E step is maximized in $\bm \theta$ in order to obtain an update of the model parameters, which means solving
+**Maximization step**. In the maximization step (*M step*) the objective of the E step is maximized in $\bm \theta$ in order to obtain an update of the model parameters, which means solving
 
 $$
 \bm \theta^{(t+1)} = \underset{\bm \theta}{\argmax} \,Q(\bm \theta \, | \, \bm \theta^{(t)}), \qquad \text{ i.e. } \, Q(\bm \theta^{(t+1)} \, | \, \bm \theta^{(t)}) \geq Q(\bm \theta \, | \, \bm \theta^{(t)}), \quad \forall \bm \theta.
@@ -329,7 +329,7 @@ $$
 The matrix
 
 $$
-\Delta V^* = (G_3 - G_2^TG_1^{-1})G_2) DM^*(I_{d_2}-DM^*)^{-1}
+\Delta V^* = (G_3 - G_2^TG_1^{-1}G_2) DM^*(I_{d_2}-DM^*)^{-1}
 $$
 
 is proven in appendix of @meng1991sem, where matrix $A$ is identified with $A = -G_1^{-1} G_2 DM^*$.
