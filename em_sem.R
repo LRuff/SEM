@@ -10,14 +10,13 @@ library(mixtools)
 ### EM Algorithm ###
 ####################
 
-initialize <- function(data) {
+initialize <- function(data, type = "canonical") {
   x <- data[,1]
   y <- na.omit(data[,2])
   n <- length(x)
   
   # Initalize
   mu <- c(mean(x), mean(y))
-  #cov <- matrix(c(var(x), 0, 0, var(y)), nrow = 2, ncol = 2) # Unbiased
   s_xx <- (1/n)*(sum(x^2) - sum(x)^2/n)
   s_yy <- (1/n)*(sum(y^2) - sum(y)^2/n)
   cov <- matrix(c(s_xx, 0, 0, s_yy), nrow = 2, ncol = 2)
@@ -50,8 +49,6 @@ emstep <- function(data, indicator, params) {
   ## M step, update parameters
   
   mu[2] <- mean(y)
-  #cov[1,2] <- cov[2,1] <-  (1/(n-1))*(sum_xy - (sum_y*sum(x))/n) # Unbiased
-  #cov[2,2] <- (1/(n-1))*(sum_yy - sum_y^2/n) # Unbiased
   
   cov[1,2] <- cov[2,1] <-  (1/n)*(sum_xy - (sum_y*sum(x))/n)
   cov[2,2] <- (1/n)*(sum_yy - sum_y^2/n)
