@@ -181,9 +181,10 @@ V = V_c + \Delta V \qquad \text{ with } \, V_c = \I_{oc}^{-1},
 
 where $V_c$ is the asymptotic complete-data variance-covariance matrix given by the inverse of the conditional expectation over $f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)$ of the complete-data information matrix evaluated at $\bm \theta = \bm{\hat \theta}$, that is
 
-$$
+\begin{equation}
+\label{eq:Ioc}
 \I_{oc} = \E[\I_{c}(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta ] \bigg\rvert_{\bm \theta = \bm{\hat \theta}} \; , \qquad \I_{c}(\bm \theta \, | \, \bm Y) = -\frac{\partial^2 \log f(\bm Y \, | \, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta},
-$$
+\end{equation}
 
 and $\Delta V$, the increase due to missing data, is given by
 
@@ -268,17 +269,38 @@ This representation of $V$ is the ansatz of the SEM algorithm, which consists of
 
 ## Evaluation of $V_c$ for exponential families
 
-We consider the evaluation of $V_c = \I_{oc}^{-1}$ for the case that the complete-data density $f(\bm Y \, | \, \theta)$ is from an exponential family, since this is most common in practical applications. This means that the complete-data density has the following representation
+We consider the evaluation of $V_c = \I_{oc}^{-1}$ for the case that the complete-data density $f(\bm Y \, | \, \bm \theta)$ is from an exponential family, since this is most common in practical applications. This means that the complete-data density has the following representation
 
 $$
-f(Y \, | \, \theta) = h(Y) \exp\{\eta(\theta)^TT(Y) - A(\theta)\} = h(Y) \exp\left\{\sum_{i=1}^s\eta_i(\theta)T_i(Y) - A(\theta)\right\},
+f(\bm Y \, | \, \bm \theta) = h(\bm Y) \exp\{\eta(\bm \theta)^T T(\bm Y) - A(\bm \theta)\} = h(\bm Y) \exp\left\{\sum_{i=1}^s\eta_i(\bm \theta) T_i(\bm Y) - A(\bm \theta) \right\},
 $$
 
-where the *natural parameter* $\eta(\theta)$ and the *sufficient statistics* $T(Y)$ are vector functions in $\R^s, s \geq d,$ and the *base measure* $h(Y)$ as well as the *log-normalizer* $A(\theta)$ are scalar functions.
+where the *natural parameter* $\eta(\bm \theta)$ and the *sufficient statistics* $T(\bm Y)$ are vector functions in $\R^s, s \geq d,$ and the *base measure* $h(\bm Y)$ as well as the *log-normalizer* $A(\bm \theta)$ are scalar functions.
 
-In case of regular exponential families, the complete-data observed information matrix is equal to the Fisher information matrix.
+The sufficient statistics $T(\bm Y)$ is crucial for the implementation and application of the EM and SEM algorithm for exponential families. This is because we have
 
-TODO: Note on the case of non-regularity (Taylor expansion! maybe footnote...)
+$$
+L(\bm \theta \, | \, \bm Y) = \log f(\bm Y \, | \, \bm \theta) = \log h(\bm Y) + \eta(\bm \theta)^T T(\bm Y) - A(\bm \theta)
+$$
+
+which means that the complete-data log-likelihood is linear in the sufficient statistics $T(\bm Y)$, i.e. $L(\bm \theta \, | \, \bm Y) = L(\bm \theta \, | \, T(\bm Y))$. This means that in order to compute the E step for exponential families, we practically just have to evaluate the conditional expectation of the sufficient statistics $\E[T(\bm Y) \, | \, \bm \Yobs, \bm \theta^{(t)}]$. Furthermore, linearity in the log-likelihood implies that the complete-data information is also linear in $T(\bm Y)$, that is $\I_{c}(\bm \theta \, | \, \bm Y) = \I_{c}(\bm \theta \, | \, T(\bm Y))$. Therefore, from the definition of $\I_{oc}$ in (\ref{eq:Ioc}), we get that
+
+\begin{align*}
+\I_{oc} &= \E[\I_{c}(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta ] \bigg\rvert_{\bm \theta = \bm{\hat \theta}}\\
+&= \I_{c}(\bm{\hat \theta} \, | \, T^*(\bm \Yobs)),
+\end{align*}
+
+by linearity in $T(\bm Y)$ with $T^*(\bm \Yobs) = \E[T(\bm Y) \, | \, \bm \Yobs, \bm{ \hat \theta}]$, which is obtained in the very last E step of the EM procedure. Hence, we can obtain $V_c = \I_{oc}^{-1}$ simply by plugging in the conditional expectation of the sufficient statistics $T^*(\bm \Yobs)$ computed in the very last E step into the inverse of $\I_{c}(\bm \theta \, | \, T(\bm Y))$ evaluated at $\bm \theta = \bm{\hat \theta}$.
+
+When the exponential family is regular (i.e. when $s = d$ and the Jacobian of $\eta(\bm \theta)$ has full rank) the evaluation of $V_c = \I_{oc}^{-1}$ is even simpler. In this case, the complete-data information matrix $\I_{oc}$ is just the standard Fisher information matrix evaluated in $\bm{\hat \theta}$, i.e.
+
+$$
+\I_{oc} = \I(\bm{\hat \theta}), \qquad \I(\bm \theta) = \E[\I_c(\bm \theta \, | \, \bm Y) \, | \, \bm \theta].
+$$
+
+Inverting the Fisher information then gives $V_c$.
+
+For the case when the complete-data density $f(\bm Y \, | \, \theta)$ is not from an exponential family, the complete-data log-likelihood $L(\bm \theta \, | \, \bm Y)$ is no longer linear in the sufficient statistics $T(\bm Y)$. This can make the evaluation of the E step difficult, because then $Q(\bm \theta \, | \, \bm \theta^{(t)})$ is generally not of closed form. One approach to tackle this problem is to linearize $L(\bm \theta \, | \, \bm Y)$ in the sufficient statistics using a Taylor expansion. See @dempster1977maximum section 3.2 for further details.
 
 
 ## Numerical Approximation of DM
@@ -345,7 +367,7 @@ In this section we want to introduce the main algorithm for EM and SEM computati
 \newpage
 
 <!--Footnotes-->
-[^1]: One can show that $L(\theta^{(t+1)} \, | \, \bm \Yobs) - L(\theta^{(t)} \, | \, \bm \Yobs) \geq 0$ using Jensen's inequality. See for example @dempster1977maximum for a detailed proof.
+[^1]: One can show that $L(\theta^{(t+1)} \, | \, \bm \Yobs) - L(\theta^{(t)} \, | \, \bm \Yobs) \geq 0$ using Jensen's inequality. See for example the original EM paper by @dempster1977maximum for a detailed proof.
 
 
 <!-- References -->
