@@ -688,7 +688,7 @@ plot(result$loglike, type = "l", xlab = "Number of EM iterations", ylab = "Log-L
 grid()
 ```
 
-```{r contour plot, fig.cap = "Contour plot of EM algorithm. Iteration 0 corresponds to the initial condition.\\label{fig:contour}", echo = FALSE}
+```{r contour plot, fig.height = 6, fig.cap = "Contour plot of EM algorithm. Iteration 0 corresponds to the initial condition.\\label{fig:contour}", echo = FALSE}
 # Contour plot
 par(mfrow=c(2,2))
 for(i in c(1,2,3,length(result$params))) {
