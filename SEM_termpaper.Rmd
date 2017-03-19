@@ -530,6 +530,178 @@ In this section we want to introduce the main algorithm for EM and SEM computati
 
 <!-- stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em) -->
 
+```{r em}
+initialize <- function(data) {
+  # Initalize parameters for first em step.
+  #
+  # Args:
+  #   data: 2-dimensional data matrix, where data are missing in
+  #         second component and first component is complete
+  #
+  # Returns:
+  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
+  
+  # Preparation
+  x <- data[,1]
+  y <- na.omit(data[,2])
+  n <- length(x)
+  
+  # Initalize parameters
+  mu <- c(mean(x), mean(y))
+  s_xx <- (1/n)*(sum(x^2) - sum(x)^2/n)
+  s_yy <- (1/n)*(sum(y^2) - sum(y)^2/n)
+  cov <- matrix(c(s_xx, 0, 0, s_yy), nrow = 2, ncol = 2)
+  
+  return(list(mu = mu, cov = cov))
+}
+
+em_step <- function(data, params) {
+  # Do one em step.
+  # Use parameters from iteration t and compute iteration t+1.
+  #
+  # Args:
+  #   data:   2-dimensional data matrix, where data are missing in
+  #           second component and first component is complete
+  #   params: list of parameters containing mu and cov
+  #
+  # Returns:
+  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
+  
+  # Preparation
+  mu <- params$mu
+  cov <- params$cov
+  x <- data[,1]
+  y <- data[,2]
+  indicator <- is.na(y)
+  n <- length(x)
+  
+  ## E step, update data
+  # Regression estimation
+  beta_1 <- cov[1,2]/cov[1,1]
+  beta_0 <- mu[2] - beta_1*mu[1]
+  sig_y_x <- cov[2,2] - beta_1^2*cov[1,1]
+  
+  # Imputation
+  y[indicator] <- beta_0 + beta_1*x[indicator]
+  
+  # Estimate sufficient statistics
+  sum_y <- sum(y)
+  sum_xy <- sum(x*y)
+  sum_yy <- sum(c(y[indicator]^2 + sig_y_x, y[!indicator]^2))
+  
+  ## M step, update parameters
+  mu[2] <- mean(y)
+  
+  cov[1,2] <- cov[2,1] <-  (1/n)*(sum_xy - (sum_y*sum(x))/n)
+  cov[2,2] <- (1/n)*(sum_yy - sum_y^2/n)
+  
+  return(params = list(mu = mu, cov = cov))
+}
+
+objective <- function(data, params) {
+  # Calculate observed log likelihood using observed date and given parameters.
+  #
+  # Args:
+  #   data:   2-dimensional data matrix, where data are missing in
+  #           second component and first component is complete
+  #   params: list of parameters containing mu and cov
+  #
+  # Returns:
+  #   Log likelihood value
+  
+  # Preparation
+  indicator <- is.na(data[,2])
+  
+  # Calculate 2D log likelihood where x and y is observed
+  if(sum(!indicator) > 0) {
+    const <- -log(2*pi)
+    det <- -(1/2)*log(det(params$cov))
+    maha <- -(1/2)*mahalanobis(data[!indicator,], params$mu, params$cov)
+    log1 <- sum(const + det + maha)
+  } else {
+    log1 <- 0
+  }
+
+  # Calculate 1D log likelihood where just x is observed
+  if(sum(indicator) > 0) {
+    const <- -(1/2)*log(2*pi)
+    det <- -(1/2)*log(params$cov[1,1])
+    maha <- -(1/2)*(data[indicator,][,1]-params$mu[1])^2/params$cov[1,1]
+    log2 <- sum(const + det + maha)
+  } else {
+    log2 <- 0
+  }
+  
+  # Sum both results to obtain observed log likelihood and return
+  return(log1+log2)
+}
+
+em_algorithm <- function(data, tolerance) {
+  # Run EM algorithm.
+  #
+  # Args:
+  #   data:      2-dimensional data matrix, where data are missing in
+  #              second component and first component is complete
+  #   tolerance: convergence criterion
+  #
+  # Returns:
+  #   List containing vector of log likelihoods for every step
+  #   and list of parameters from all steps, including mle estimate,
+  #   orresponding to last em step
+  
+  # Preparation
+  params <- initialize(data)
+  vecLoglike <- NULL
+  lParams <- list(params)
+  
+  # Repeat as long as convergence criterion is hit
+  repeat {
+    # EM step
+    params <- em_step(data, params)
+    lParams <- append(lParams, list(params))
+    
+    # Calculate objective (likelihood)
+    vecLoglike <- append(vecLoglike, objective(data, params))
+    
+    # Check if convergence criterion is hit
+    last <- length(vecLoglike)
+    if(last >= 2 && abs(vecLoglike[last] - vecLoglike[last-1]) < tolerance) {
+      break
+    }
+  }
+  
+  return(list(loglike = vecLoglike, params = lParams))
+}
+
+# Data
+
+# Paper example 3
+x <- c(8,6,11,22,14,17,18,24,19,23,26,40,4,4,5,6,8,10)
+y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
+data <- matrix(c(x,y), ncol = 2)
+
+# Run algorithm
+result <- em_algorithm(data, tolerance = 10^-12)
+```
+
+```{r likelihood convergence, fig.cap = "Convergence of observed log likelihood. Increase in steps corresponds to increase in observed log likelihood. \\label{fig:likelihood-convergence}", echo = FALSE}
+# Plot convergence of log likelihood
+plot(result$loglike, type = "l", xlab = "Number of EM iterations", ylab = "Log-Likelihood")
+grid()
+```
+
+```{r contour plot, fig.cap = "Contour plot of EM algorithm. Iteration 0 corresponds to the initial condition.\\label{fig:contour}", echo = FALSE}
+# Contour plot
+par(mfrow=c(2,2))
+for(i in c(1,2,3,length(result$params))) {
+  plot(data, pch = 20, xlim = c(-10,45), ylim = c(15,85),
+       xlab = "x", ylab = "y", main = paste("EM iteration", i-1))
+  grid()
+  for(j in 1:9) ellipse(mu=result$params[[i]]$mu, sigma=result$params[[i]]$cov,
+                        alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
+}
+```
+
 \newpage
 
 <!--Footnotes-->
