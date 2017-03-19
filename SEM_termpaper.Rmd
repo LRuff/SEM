@@ -30,7 +30,7 @@ documentclass: article
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r libraries, echo=FALSE}
+```{r libraries, echo=FALSE, warning=FALSE, message=FALSE}
 library(MASS)
 library(mixtools)
 library(plyr)
@@ -524,11 +524,9 @@ $$
 
 Now we have all the formulas needed to implement the EM and SEM algorithm for the bivariate normal example.
 
-## Real data application
+## Replication of the bivariate normal example from @meng1991sem
 
-In this section we want to introduce the main algorithm for EM and SEM computation. Afterwards the results of @meng1991sem in their bivariate example in section 4.4 will be reproduced to verify, that our implementation runs correctly.
-
-<!-- stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em) -->
+In this section we apply the EM and SEM algorithm to the bivariate normal example of section 4.4 from @meng1991sem.
 
 ```{r em}
 initialize <- function(data) {
