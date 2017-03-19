@@ -315,9 +315,10 @@ $$
 
 Define $\bm \theta^{(t)}(i)$ to be the ML estimate $\bm{\hat \theta}$ with varied $i$-th component:
 
-$$
+\begin{equation}
+\label{eq:theta_t_i}
 \bm \theta^{(t)}(i) = (\hat \theta_1, \ldots, \hat \theta_{i-1}, \theta^{(t)}_i, \hat \theta_{i+1}, \ldots, \hat \theta_d).
-$$
+\end{equation}
 
 That is, only the $i$-th component is active and all others are fixed at the ML estimate. Then, from the definition of $r_{ij}$ and writing the componentwise derivatives as limits of the difference quotients, we have
 
@@ -328,7 +329,7 @@ r_{ij} &= \frac{\partial M_j (\bm{\hat \theta})}{\partial \theta_i}\\
 {\theta_i^{(t)} - \hat \theta_i}}_{=: r_{ij}^{(t)}} = \lim_{t \to \infty} r_{ij}^{(t)},
 \end{align*}
 
-if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \hat \theta_i$. Since $M(\bm \theta)$ is defined implicitly by the EM algorithm, the rate sequences $(r_{ij}^{(t)})_t$ can be computed using the code of the E and M steps of the EM algorithm. Hence, after obtaining the ML estimate $\bm{\hat \theta}$ from some estimation procedure (e.g. also the EM algorithm), we can numerically approximate $DM$ only from using code of the EM algorithm. We summarize the complete SEM algorithm in the next subsection.
+if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \hat \theta_i$. Since $M(\bm \theta)$ is defined implicitly by the EM algorithm, the rate sequences $(r_{ij}^{(t)})_t$ can be computed using the code of the E and M steps of the EM algorithm. Hence, after obtaining the ML estimate $\bm{\hat \theta}$ from some estimation procedure (e.g. also the EM algorithm), we can numerically approximate $DM$ only from using code of the EM algorithm. We summarize the complete SEM algorithm in the next subsection. 
 
 <!-- Optional: Alternatives for approximation of DM -->
 
@@ -339,7 +340,31 @@ if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \
 
 ## The algorithm
 
+From the steps outlined above, we can summarize the overall SEM algorithm as follows:
 
+\textbf{Data:} $\bm \yobs$
+
+\textbf{Step 1:} Obtain the ML estimate $\bm{\hat \theta}$ by EM (or any other procedure, e.g. also from closed-form solutions in special cases).
+
+\textbf{Step 2:} Evaluate $V_c = \I_{oc}^{-1}$ as outlined in section 3.3 (i.e. for regular exponential families compute the inverse of the Fisher information matrix evaluated at $\bm{\hat \theta}$).
+
+\textbf{Step 3:} Computation of DM  
+Starting with a value $\bm{\theta}^{(0)} \not =\bm{\hat \theta}$ run the following sequence of SEM iterations:
+
+*Input*: $\bm{\hat \theta}$ and $\bm \theta^{(t)}$  
+*Step 3.1:* Run the usual E and M steps with $\bm \theta^{(t)}$ to obtain $\bm \theta^{(t+1)}$.  
+Repeat steps 3.2 and 3.3 for $i = 1,\ldots,d.$  
+*Step 3.2:* Compute $\bm \theta^{(t)}(i)$ from (\ref{eq:theta_t_i}) and use it to run one iteration of EM to obtain $\bm{\tilde\theta}^{(t+1)}(i)$.  
+*Step 3.3:* Obtain one iteration of the rate sequences by
+\begin{equation}
+\label{eq:rateseq}
+r_{ij}^{(t)} = \frac{\tilde\theta_j^{(t+1)}(i) - \hat\theta_j}{\theta_i^{(t)} - \hat\theta_i}, \quad \text{for } j = 1, \ldots, d.
+\end{equation}
+*Output:* $\bm \theta^{(t+1)}$ and $\{r_{ij}^{(t)}, \; i,j = 1,\ldots, d \}$.
+
+Obtain the limit $r_{ij}$ when the sequence $(r_{ij}^{(t)})$ is stable for some $t^*$, which can be different for each pair $(i,j)$. This means that steps 3.2 and 3.3 are only repeated for the pairs that have not yet converged. The numerical approximation of $DM = (r_{ij})$ is done, when all rate sequences have converged.
+
+\textbf{Step 4:} Evaluate $V = V_c + \Delta V$ with the results from step 2 and step 3 with equation \eqref{eq:DeltaV}.
 
 
 # Application
