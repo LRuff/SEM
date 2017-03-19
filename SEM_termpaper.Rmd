@@ -958,7 +958,9 @@ simulation <- function(data, N, nSim, tolEM, tolSEM) {
   
   return(list(loglikes = loglikes, mles = mles, sd = list(mc = mcSd, sem = semSd)))
 }
+```
 
+```{r plot functions, echo = FALSE}
 plotSDMu2 <- function(simResults, nSim) {
   # Plot standard deviation, estimated by MC and SEM for parameter mu2
   #
@@ -987,9 +989,7 @@ plotSDMu2 <- function(simResults, nSim) {
   arrows(meanMu2-semSdMu2,0,meanMu2+semSdMu2,0, col = "blue", code=3, length=0.1, angle = 90, lwd = 2)
   points(meanMu2, 0, pch = 16, col = "red", cex = 1.2)
 }
-```
 
-```{r plot functions, echo = FALSE}
 plotLikeli <- function(simResults, nSim) {
   # Plot likelihood convergence of EM for simulated daza
   #
@@ -1033,9 +1033,9 @@ for(iSim in 1:nSim) {
 }
 ```
 
-To compare the results of the SEM variance estimation with some other estimation, a simulation study was implemented. The simulation is based on @enders2010missing chapter 4.8. Enders used two variables which are normally distributed. The first variable $X$ was chosen as intelligence with $\mu_X = 100$ and $\sigma_{XX} = 169$. The second variable $Y$, job perfornance, follows a ditribution with $\mu_Y = 12$ and $\sigma_{YY} = 9$. The covariance between them should be $\sigma_{XY} = 19.5$.
+To compare the results of the SEM variance estimation with some other estimation, a simulation study was implemented. The simulation is based on @enders2010missing chapter 4.8. Enders used two variables which are normally distributed. The first variable $X$ was chosen as intelligence with $\mu_X = 100$ and $\sigma_{XX} = 169$. The second variable $Y$, job perfornance, follows a ditribution with $\mu_Y = 12$ and $\sigma_{YY} = 9$. The covariance between them should be $\sigma_{XY} = 19.5$. $X$ was completely observed, where $Y$ was partly missing. In case of MCAR 50% of all dataset entries were removed, in case of MAR thos performance values were removed, were the intelligence was lower than median.
 
-Like Enders, we simulated $1000$ datasets, each having a size of $N = 250$. We obtained the variances, using SEM algorithm and MC estimation. Using the SEM algorithm, we obtained a variance estimation for every dataset, taking the quare rooted diagonal to get standard deviations. Finally the mean over all simulations was taken. In MC simulation, the ML estimators are ca 
+Like Enders, we simulated $1000$ datasets, each having a size of $N = 250$. We obtained the variances, using SEM algorithm and MC estimation. Using the SEM algorithm, we obtained a variance estimation for every dataset, taking the quare rooted diagonal to get standard deviations. Finally the mean over all variance estimations was taken. In MC simulation, the ML estimators were calculated for every sample, finally the standard deviation of the estimators were calculated.
 
 ```{r mcar ana, cache = TRUE}
 # Get variance estimation with simulated data using SEM and MC under MCAR
@@ -1045,13 +1045,14 @@ results_mcar <- simulation(data_mcar, N, nSim, tolEM = 10^-8, tolSEM = 10^-4)
 results_mcar$sd
 ```
 
-```{r mcar plots, echo = FALSE}
+The results for MC and SEM are very similar for $\mu_y$ and $\sigma_{yy}$ in case of MCAR. The SEM result of $\sigma_{xy}$ was not very close to the result of the MC estimation, which is probably related to the problems we had, calculating the SEM variances. In the plot \ref{fig:fig:sd-mcar}, the differences in standard deviation for $\mu_y$ is shown.
+
+```{r mcar plots, echo = FALSE, fig.cap = "Standard deviation for mu_y using SEM and MC for MCAR data\\label{fig:sd-mcar}"}
 # Plot results
 plotSDMu2(results_mcar, nSim)
-plotLikeli(results_mcar, nSim)
 ```
 
-```{r mar, cache = TRUE}
+```{r mar ana, cache = TRUE}
 # Generate MAR data
 data_mar[,2][data_mar[,1] < median(data_mar[,1])] <- NA
 
@@ -1062,10 +1063,11 @@ results_mar <- simulation(data_mar, N, nSim, tolEM = 10^-8, tolSEM = 10^-4)
 results_mar$sd
 ```
 
-```{r mar, echo = FALSE}
+In case of MAR, the problems with calculation of $V$ using SEM are more clear, but still the values are not too far away from the MC results, which can also be seen in \ref{fig:fig:sd-mar}.
+
+```{r mar plots, echo = FALSE, fig.cap = "Standard deviation for mu_y using SEM and MC for MAR data\\label{fig:sd-mar}"}
 # Plot results
 plotSDMu2(results_mar, nSim)
-plotLikeli(results_mar, nSim)
 ```
 
 \newpage
