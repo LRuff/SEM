@@ -724,15 +724,15 @@ print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu[2],
       comment = FALSE)
 ```
 
-
-
-```{r likelihood convergence, fig.cap = "Convergence of observed log likelihood. Increase in steps corresponds to increase in observed log likelihood. \\label{fig:likelihood-convergence}", echo = FALSE}
+```{r likelihood convergence, fig.cap = "Convergence of observed log likelihood. \\label{fig:likelihood-convergence}", echo = FALSE}
 # Plot convergence of log likelihood
 plot(result$loglike, type = "l", xlab = "Number of EM iterations", ylab = "Log-Likelihood")
 grid()
 ```
 
-```{r contour plot, fig.height = 6, fig.cap = "Contour plot of EM algorithm. Iteration 0 corresponds to the initial condition.\\label{fig:contour}", echo = FALSE}
+In Figure \ref{fig:likelihood-convergence}, we can see that the observed log-likelihood converges to some maximum in the parameters from the EM iterations. Figure \ref{fig:contour} shows the densities of the bivariate normal at different stages of the EM algorithm.
+
+```{r contour plot, fig.height = 6, fig.cap = "Contour plots of bivariate normal at different stages of the EM algorithm. \\label{fig:contour}", echo = FALSE}
 # Contour plot
 par(mfrow=c(2,2))
 for(i in c(1,2,3,length(result$params))) {
@@ -743,6 +743,10 @@ for(i in c(1,2,3,length(result$params))) {
                         alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
 }
 ```
+
+In our implementation of the SEM algorithm, which can be found in the .Rmd-file, unfortunately we still receive a non symmetric $\Delta V$. We obtain the correct value for $\mu_2$ in $DM$, but because of the different parameterization, we cannot compare the other values directly. The sources of error could be two-fold: (1) the implementation (or formula derivation) of the inverse Fisher information matrix is not correct or (2) the computation of $DM$ has coding errors.
+
+As emphasized in the paper, one nice feature of SEM is, that coding errors or numerical errors can be diagnosed from the symmetry of $\Delta V$, which unfortunately in our case, is still asymmetric.
 
 ```{r sem}
 calculateRatio <- function(data, params, i, j, tolerance) {
@@ -1062,8 +1066,6 @@ results_mar <- simulation(data_mar, N, nSim, tolEM = 10^-8, tolSEM = 10^-4)
 # Print results
 results_mar$sd
 ```
-
-In case of MAR, the problems with calculation of $V$ using SEM are more clear, but still the values are not too far away from the MC results, which can also be seen in \ref{fig:fig:sd-mar}.
 
 ```{r mar plots, echo = FALSE, fig.cap = "Standard deviation for mu_y using SEM and MC for MAR data\\label{fig:sd-mar}"}
 # Plot results
