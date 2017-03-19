@@ -34,6 +34,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(MASS)
 library(mixtools)
 library(plyr)
+library(xtable)
 ```
 
 <!-- Titlepage -->
@@ -528,31 +529,17 @@ Now we have all the formulas needed to implement the EM and SEM algorithm for th
 
 In this section we apply the EM and SEM algorithm to the bivariate normal example of section 4.4 from @meng1991sem.
 
-```{r em}
-initialize <- function(data) {
-  # Initalize parameters for first em step.
-  #
-  # Args:
-  #   data: 2-dimensional data matrix, where data are missing in
-  #         second component and first component is complete
-  #
-  # Returns:
-  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
-  
-  # Preparation
-  x <- data[,1]
-  y <- na.omit(data[,2])
-  n <- length(x)
-  
-  # Initalize parameters
-  mu <- c(mean(x), mean(y))
-  s_xx <- (1/n)*(sum(x^2) - sum(x)^2/n)
-  s_yy <- (1/n)*(sum(y^2) - sum(y)^2/n)
-  cov <- matrix(c(s_xx, 0, 0, s_yy), nrow = 2, ncol = 2)
-  
-  return(list(mu = mu, cov = cov))
-}
+We have given the following data:
 
+```{r data}
+# Data
+x <- c(8,6,11,22,14,17,18,24,19,23,26,40,4,4,5,6,8,10)
+y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
+```
+
+One iteration of the EM algorithm for the bivariate normal example is implemented as follows:
+
+```{r EM step}
 em_step <- function(data, params) {
   # Do one em step.
   # Use parameters from iteration t and compute iteration t+1.
@@ -594,6 +581,32 @@ em_step <- function(data, params) {
   cov[2,2] <- (1/n)*(sum_yy - sum_y^2/n)
   
   return(params = list(mu = mu, cov = cov))
+}
+```
+
+```{r em, echo = FALSE}
+initialize <- function(data) {
+  # Initalize parameters for first em step.
+  #
+  # Args:
+  #   data: 2-dimensional data matrix, where data are missing in
+  #         second component and first component is complete
+  #
+  # Returns:
+  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
+  
+  # Preparation
+  x <- data[,1]
+  y <- na.omit(data[,2])
+  n <- length(x)
+  
+  # Initalize parameters
+  mu <- c(mean(x), mean(y))
+  s_xx <- (1/n)*(sum(x^2) - sum(x)^2/n)
+  s_yy <- (1/n)*(sum(y^2) - sum(y)^2/n)
+  cov <- matrix(c(s_xx, 0, 0, s_yy), nrow = 2, ncol = 2)
+  
+  return(list(mu = mu, cov = cov))
 }
 
 objective <- function(data, params) {
@@ -671,16 +684,48 @@ em_algorithm <- function(data, tolerance) {
   return(list(loglike = vecLoglike, params = lParams))
 }
 
-# Data
-
 # Paper example 3
-x <- c(8,6,11,22,14,17,18,24,19,23,26,40,4,4,5,6,8,10)
-y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
 data <- matrix(c(x,y), ncol = 2)
 
 # Run algorithm
 result <- em_algorithm(data, tolerance = 10^-12)
 ```
+
+We get the following results for the parameters
+
+```{r EM param, results="asis", echo=FALSE}
+print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu, 
+                      tail(result$params, 1)[[1]]$cov[1,1],
+                      tail(result$params, 1)[[1]]$cov[2,2],
+                      tail(result$params, 1)[[1]]$cov[1,2]),
+                    ncol = 5, dimnames = list(
+                      NULL,
+                      c("mu1", "mu2", "sigma11", "sigma22", "sigma12"))
+                    ),
+             caption = "EM parameter estimates"),
+      comment = FALSE)
+```
+
+which match the results in Table 5 of @meng1991sem of the transformed parameterization:
+
+```{r EM transParam, results="asis", echo=FALSE}
+corr <- tail(result$params, 1)[[1]]$cov[1, 2] / 
+  sqrt(tail(result$params, 1)[[1]]$cov[1, 1] * tail(result$params, 1)[[1]]$cov[2, 2])
+Z <- 
+
+print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu, 
+                      tail(result$params, 1)[[1]]$cov[1,1],
+                      tail(result$params, 1)[[1]]$cov[2,2],
+                      tail(result$params, 1)[[1]]$cov[1,2]),
+                    ncol = 3, dimnames = list(
+                      NULL,
+                      c("mu2", "log sigma22", "Z",))
+                    ),
+             caption = "EM parameter estimates"),
+      comment = FALSE)
+```
+
+
 
 ```{r likelihood convergence, fig.cap = "Convergence of observed log likelihood. Increase in steps corresponds to increase in observed log likelihood. \\label{fig:likelihood-convergence}", echo = FALSE}
 # Plot convergence of log likelihood
@@ -699,6 +744,8 @@ for(i in c(1,2,3,length(result$params))) {
                         alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
 }
 ```
+
+## Simulation study
 
 \newpage
 
