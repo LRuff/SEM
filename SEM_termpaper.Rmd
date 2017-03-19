@@ -500,7 +500,7 @@ is proven in appendix of @meng1991sem, where matrix $A$ is identified with $A = 
 
 ## Real data application
 
-In this section we want to introduce the main algorithm for EM and SEM computation. Afterwards the results of @meng1991sem in their bivariate example will be reproduced to verify, that our implementation runs correctly.
+In this section we want to introduce the main algorithm for EM and SEM computation. Afterwards the results of @meng1991sem in their bivariate example in section 4.4 will be reproduced to verify, that our implementation runs correctly.
 
 <!-- stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em) -->
 
