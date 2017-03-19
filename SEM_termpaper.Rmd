@@ -305,11 +305,28 @@ For the case when the complete-data density $f(\bm Y \, | \, \theta)$ is not fro
 
 ## Numerical Approximation of DM
 
-r_ij component
+Let $r_{ij}$ be the $(i, j)$-th element of the rate matrix $DM$, that is
 
-component wise derivation of matrix
+$$
+DM = \left.\left( \frac{\partial M_j(\bm \theta)}{\partial \theta_i} \right) \right|_{\bm \theta = \bm{\hat \theta}} = \left(r_{ij}\right), \quad i,j = 1,\ldots,d.
+$$
 
-(1) EM to obtain theta (2) SEM to obtain r_ij
+Define $\bm \theta^{(t)}(i)$ to be the ML estimate $\bm{\hat \theta}$ with varied $i$-th component:
+
+$$
+\bm \theta^{(t)}(i) = (\hat \theta_1, \ldots, \hat \theta_{i-1}, \theta^{(t)}_i, \hat \theta_{i+1}, \ldots, \hat \theta_d).
+$$
+
+That is, only the $i$-th component is active and all others are fixed at the ML estimate. Then, from the definition of $r_{ij}$ and writing the componentwise derivatives as limits of the difference quotients, we have
+
+\begin{align*}
+r_{ij} &= \frac{\partial M_j (\bm{\hat \theta})}{\partial \theta_i}\\
+&= \lim_{\theta_i \to \hat \theta_i} \frac{M_j(\hat \theta_1, \ldots, \hat \theta_{i-1}, \theta_i, \hat \theta_{i+1}, \ldots, \hat \theta_d) - M_j(\hat \theta)}{\theta_i - \hat \theta_i}\\
+&= \lim_{t \to \infty} \underbrace{\frac{M_j(\bm \theta^{(t)}(i)) - \hat \theta_j}
+{\theta_i^{(t)} - \hat \theta_i}}_{=: r_{ij}^{(t)}} = \lim_{t \to \infty} r_{ij}^{(t)},
+\end{align*}
+
+if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \hat \theta_i$. Since $M(\bm \theta)$ is defined implicitly by the EM algorithm, the rate sequences $(r_{ij}^{(t)})_t$ can be computed using the code of the E and M steps of the EM algorithm. Hence, after obtaining the ML estimate $\bm{\hat \theta}$ from some estimation procedure (e.g. also the EM algorithm), we can numerically approximate $DM$ only from using code of the EM algorithm. We summarize the complete SEM algorithm in the next subsection.
 
 <!-- Optional: Alternatives for approximation of DM -->
 
