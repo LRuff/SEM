@@ -902,8 +902,8 @@ V <- sem_algorithm(data, result$params, 10^-4)
 
 ## Simulation study
 
-```{r sim}
-simulation <- function(data, N, nSim, tolem, tolsem) {
+```{r sim, echo = FALSE}
+simulation <- function(data, N, nSim, tolEM, tolSEM) {
   # Simulation with nSim simulations of N sized data.
   # Calculate variances of EM estimators using SEM and MC.
   #
@@ -912,7 +912,8 @@ simulation <- function(data, N, nSim, tolem, tolsem) {
   #         second component and first component is complete
   #   N:    size of data
   #   nSim: number of simulations
-  #   tolerance: convergence criterion
+  #   tolEM:  convergence criterion for EM
+  #   tolSEM: convergence criterion for SEM
   #
   # Returns:
   #   A list containing:
@@ -927,7 +928,7 @@ simulation <- function(data, N, nSim, tolem, tolsem) {
   
   # Run EM algorithm and store loglikelihoods and mle's
   for(iSim in 1:nSim) {
-    results[iSim] <- list(em_algorithm(data[((iSim-1)*N+1):(iSim*N),], tolem))
+    results[iSim] <- list(em_algorithm(data[((iSim-1)*N+1):(iSim*N),], tolEM))
     loglikes[iSim] <- list(results[iSim][[1]]$loglike)
     mles[iSim,] <- unlist(tail(results[[iSim]]$params, 1)[[1]])[c(2,4,6)]
   }
@@ -943,7 +944,7 @@ simulation <- function(data, N, nSim, tolem, tolsem) {
   
   # Run SEM for every simulation
   for(iSim in 1:nSim) {
-    sem <- sem_algorithm(data[((iSim-1)*N+1):(iSim*N),], results[[iSim]]$params, tolsem)
+    sem <- sem_algorithm(data[((iSim-1)*N+1):(iSim*N),], results[[iSim]]$params, tolSEM)
     semVars[iSim,] <- suppressWarnings(sqrt(diag(sem)))
   }
   
@@ -987,7 +988,9 @@ plotSDMu2 <- function(simResults, nSim) {
   arrows(meanMu2-semSdMu2,0,meanMu2+semSdMu2,0, col = "blue", code=3, length=0.1, angle = 90, lwd = 2)
   points(meanMu2, 0, pch = 16, col = "red", cex = 1.2)
 }
+```
 
+```{r plot functions, echo = FALSE}
 plotLikeli <- function(simResults, nSim) {
   # Plot likelihood convergence of EM for simulated daza
   #
@@ -1029,27 +1032,38 @@ sequence <- sample(seq(1,N), N/2)
 for(iSim in 1:nSim) {
   data_mcar[((iSim-1)*N+1):(iSim*N),][,2][sequence] <- NA
 }
+```
 
+To compare the results of the SEM variance estimation with some other estimation, a simulation study was implemented. The simulation is based on @enders2010missing chapter 4.8. Enders used two variables which are normally distributed. The first variable $X$ was chosen as intelligence with $\mu_X = 100$ and $\sigma_{XX} = 169$. The second variable $Y$, job perfornance, follows a ditribution with $\mu_Y = 12$ and $\sigma_{YY} = 9$. The covariance between them should be $\sigma_{XY} = 19.5$.
+
+Like Enders, we simulated $1000$ datasets, each having a size of $N = 250$. We obtained the variances, using SEM algorithm and MC estimation. Using the SEM algorithm, we obtained a variance estimation for every dataset, taking the quare rooted diagonal to get standard deviations. Finally the mean over all simulations was taken. In MC simulation, the ML estimators are ca 
+
+```{r mcar ana, cache = TRUE}
 # Get variance estimation with simulated data using SEM and MC under MCAR
-results_mcar <- simulation(data_mcar, N, nSim, tolem = 10^-8, tolsem = 10^-4)
+results_mcar <- simulation(data_mcar, N, nSim, tolEM = 10^-8, tolSEM = 10^-4)
 
 # Print results
 results_mcar$sd
+```
 
+```{r mcar plots, echo = FALSE}
 # Plot results
 plotSDMu2(results_mcar, nSim)
 plotLikeli(results_mcar, nSim)
+```
 
-
+```{r mar, cache = TRUE}
 # Generate MAR data
 data_mar[,2][data_mar[,1] < median(data_mar[,1])] <- NA
 
 # Get variance estimation with simulated data using SEM and MC under MAR
-results_mar <- simulation(data_mar, N, nSim, tolem = 10^-8, tolsem = 10^-4)
+results_mar <- simulation(data_mar, N, nSim, tolEM = 10^-8, tolSEM = 10^-4)
 
 # Print results
 results_mar$sd
+```
 
+```{r mar, echo = FALSE}
 # Plot results
 plotSDMu2(results_mar, nSim)
 plotLikeli(results_mar, nSim)
