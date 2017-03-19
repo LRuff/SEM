@@ -8,190 +8,31 @@ library(MASS)
 library(mixtools)
 library(plyr)
 
-####################
-### EM Algorithm ###
-####################
-
-```{r em}
-initialize <- function(data) {
-  # Initalize parameters for first em step.
-  #
-  # Args:
-  #   data: 2-dimensional data matrix, where data are missing in
-  #         second component and first component is complete
-  #
-  # Returns:
-  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
-  
-  # Preparation
-  x <- data[,1]
-  y <- na.omit(data[,2])
-  n <- length(x)
-  
-  # Initalize parameters
-  mu <- c(mean(x), mean(y))
-  s_xx <- (1/n)*(sum(x^2) - sum(x)^2/n)
-  s_yy <- (1/n)*(sum(y^2) - sum(y)^2/n)
-  cov <- matrix(c(s_xx, 0, 0, s_yy), nrow = 2, ncol = 2)
-  
-  return(list(mu = mu, cov = cov))
-}
-
-em_step <- function(data, params) {
-  # Do one em step.
-  # Use parameters from iteration t and compute iteration t+1.
-  #
-  # Args:
-  #   data:   2-dimensional data matrix, where data are missing in
-  #           second component and first component is complete
-  #   params: list of parameters containing mu and cov
-  #
-  # Returns:
-  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
-  
-  # Preparation
-  mu <- params$mu
-  cov <- params$cov
-  x <- data[,1]
-  y <- data[,2]
-  indicator <- is.na(y)
-  n <- length(x)
-  
-  ## E step, update data
-  # Regression estimation
-  beta_1 <- cov[1,2]/cov[1,1]
-  beta_0 <- mu[2] - beta_1*mu[1]
-  sig_y_x <- cov[2,2] - beta_1^2*cov[1,1]
-  
-  # Imputation
-  y[indicator] <- beta_0 + beta_1*x[indicator]
-  
-  # Estimate sufficient statistics
-  sum_y <- sum(y)
-  sum_xy <- sum(x*y)
-  sum_yy <- sum(c(y[indicator]^2 + sig_y_x, y[!indicator]^2))
-  
-  ## M step, update parameters
-  mu[2] <- mean(y)
-  
-  cov[1,2] <- cov[2,1] <-  (1/n)*(sum_xy - (sum_y*sum(x))/n)
-  cov[2,2] <- (1/n)*(sum_yy - sum_y^2/n)
-  
-  return(params = list(mu = mu, cov = cov))
-}
-
-objective <- function(data, params) {
-  # Calculate observed log likelihood using observed date and given parameters.
-  #
-  # Args:
-  #   data:   2-dimensional data matrix, where data are missing in
-  #           second component and first component is complete
-  #   params: list of parameters containing mu and cov
-  #
-  # Returns:
-  #   Log likelihood value
-  
-  # Preparation
-  indicator <- is.na(data[,2])
-  
-  # Calculate 2D log likelihood where x and y is observed
-  if(sum(!indicator) > 0) {
-    const <- -log(2*pi)
-    det <- -(1/2)*log(det(params$cov))
-    maha <- -(1/2)*mahalanobis(data[!indicator,], params$mu, params$cov)
-    log1 <- sum(const + det + maha)
-  } else {
-    log1 <- 0
-  }
-  
-  # Calculate 1D log likelihood where just x is observed
-  if(sum(indicator) > 0) {
-    const <- -(1/2)*log(2*pi)
-    det <- -(1/2)*log(params$cov[1,1])
-    maha <- -(1/2)*(data[indicator,][,1]-params$mu[1])^2/params$cov[1,1]
-    log2 <- sum(const + det + maha)
-  } else {
-    log2 <- 0
-  }
-  
-  # Sum both results to obtain observed log likelihood and return
-  return(log1+log2)
-}
-
-em_algorithm <- function(data, tolerance) {
-  # Run EM algorithm.
-  #
-  # Args:
-  #   data:      2-dimensional data matrix, where data are missing in
-  #              second component and first component is complete
-  #   tolerance: convergence criterion
-  #
-  # Returns:
-  #   List containing vector of log likelihoods for every step
-  #   and list of parameters from all steps, including mle estimate,
-  #   orresponding to last em step
-  
-  # Preparation
-  params <- initialize(data)
-  vecLoglike <- NULL
-  lParams <- list(params)
-  
-  # Repeat as long as convergence criterion is hit
-  repeat {
-    # EM step
-    params <- em_step(data, params)
-    lParams <- append(lParams, list(params))
-    
-    # Calculate objective (likelihood)
-    vecLoglike <- append(vecLoglike, objective(data, params))
-    
-    # Check if convergence criterion is hit
-    last <- length(vecLoglike)
-    if(last >= 2 && abs(vecLoglike[last] - vecLoglike[last-1]) < tolerance) {
-      break
-    }
-  }
-  
-  return(list(loglike = vecLoglike, params = lParams))
-}
-
-# Data
-
-# Paper example 3
-x <- c(8,6,11,22,14,17,18,24,19,23,26,40,4,4,5,6,8,10)
-y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
-data <- matrix(c(x,y), ncol = 2)
-
-# Run algorithm
-result <- em_algorithm(data, tolerance = 10^-12)
-
-# Plot convergence of log likelihood
-plot(result$loglike, type = "l", xlab = "# of EM steps", ylab = "Log-Likelihood")
-grid()
-
-# Contour plot
-par(mfrow=c(2,2))
-for(i in c(1,2,3,length(result$params))) {
-  plot(data, pch = 20, xlim = c(-10,45), ylim = c(15,85),
-       xlab = "x", ylab = "y", main = paste("EM iteration", i))
-  grid()
-  for(j in 1:9) ellipse(mu=result$params[[i]]$mu, sigma=result$params[[i]]$cov,
-                        alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
-}
-par(mfrow=c(1,1))
-```
-
 #####################
 ### SEM Algorithm ###
 #####################
 
 calculateRatio <- function(data, params, i, j, tolerance) {
+  # Calculate ratio as entry for DM matrix.
+  #
+  # Args:
+  #   data:   2-dimensional data matrix, where data are missing in
+  #           second component and first component is complete
+  #   params: list of parameters containing mu and cov
+  #   i,j:    index of DM matrix
+  #   tolerance: convergence criterion
+  #
+  # Returns:
+  #   The convergence rate in matrix DM of index i,j
+  
+  # Preparation
   indicator <- is.na(data[,2])
   vecR <- NULL
   
   # Get last parameter element (MLE)
   mle <- unlist(tail(params, 1)[[1]])
   
+  # Compute rate until convergence
   t <- 1
   repeat {
     # Get current state of theta from em computation
@@ -207,7 +48,6 @@ calculateRatio <- function(data, params, i, j, tolerance) {
     theta_t_1_i <- unlist(em_step(data, paramList))
     
     # Calculate ratio
-    #print(paste(theta_t_1_i[[j]],mle[[j]],theta_t[[i]],mle[[i]]))
     vecR <- append(vecR, (theta_t_1_i[[j]] - mle[[j]])/(theta_t[[i]] - mle[[i]]))
     
     # Increase iteration
@@ -218,19 +58,30 @@ calculateRatio <- function(data, params, i, j, tolerance) {
     if((last >= 2 && abs(vecR[last] - vecR[last-1]) < tolerance)) {
       break
     }
+    
+    # Check if there is still a parameter from EM to calculate next iteration
     if(t >= length(params)) {
       warning("SEM did not converge for one component.")
       break
     }
   }
   
-  #print(vecR)
-  
-  # Just return last rate
+  # Just return last rate after convergence
   return(vecR[length(vecR)])
 }
 
 calculateDM <- function(data, params, tolerance) {
+  # Calculate DM matrix, calling calculateRatio for every entry in matrix
+  #
+  # Args:
+  #   data:   2-dimensional data matrix, where data are missing in
+  #           second component and first component is complete
+  #   params: list of parameters containing mu and cov
+  #   tolerance: convergence criterion
+  #
+  # Returns:
+  #   Whole DM matrix.
+  
   # Parameters to estimate in DM*
   # 1: mu1, 2: mu2, 3: s_xx, 4/5: s_xy, 6: s_yy
   estimates <- c(2,4,6)
@@ -245,37 +96,11 @@ calculateDM <- function(data, params, tolerance) {
   for(i in 1:d) {
     for(j in 1:d) {
       DM[i,j] <- calculateRatio(data, params, estimates[i], estimates[j], tolerance)
-      #print(paste(i,j,":",DM[i,j]))
     }
   }
   
-  # Return whole DM
   return(DM)
 }
-
-# calculateDM2 <- function(data, params, tolerance) {
-#   indicator <- is.na(data[,2])
-#   mle <- unlist(tail(params, 1)[[1]])
-#   DM <- matrix(nrow = 3, ncol = 3)
-#   estimate <- c(2,4,6)
-#   
-#   for(t in 1:(length(params)-1)) {
-#     for(i in 1:3) {
-#       theta_t_i <- mle
-#       theta_t_i[estimate[i]] <- unlist(params[[t]])[estimate[i]]
-#       
-#       tild_theta_t_i <- em_step(data, list(mu = theta_t_i[1:2], cov = matrix(theta_t_i[3:6], 2, 2)))
-#       
-#       top <- unlist(tild_theta_t_i)[estimate]-mle[estimate]
-#       bot <- unlist(params[[t]])[estimate[i]]-mle[estimate[i]]
-#       DM[i,] <- top/bot
-#     }
-#     print(DM)
-#     #print(top[[1]])
-#     #print(bot)
-#   }
-#   
-# }
 
 sem_algorithm <- function(data, params, tolerance) {
   n <- length(data[,1])
