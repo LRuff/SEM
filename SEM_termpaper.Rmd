@@ -73,9 +73,9 @@ knitr::opts_chunk$set(echo = TRUE)
 <!-- Document Body -->
 # Introduction
 
-There are several methods to deal with missing data. Beside multiple imputation it is possible to estimate parameters by using the likelihood function. Unfortunatly in many cases, solving the likelihood of the observed data is not an easytask. Therefore the so called expectation maximization (EM) algorithm can be used. It was developed by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
+There are several methods to deal with missing data. Beside multiple imputation it is possible to estimate parameters by using the likelihood function. Unfortunatly in many cases, solving the likelihood of the observed data is not an easy task. Therefore the so called expectation maximization (EM) algorithm can be used. It was developed by @dempster1977maximum to obtain maximum likelihood estimations when the underlying distribution depends on unobserved variables.
 
-While the algortihm itself - finding parameters $\hat\theta$ - is feasible, the estimtaion of the variance of the estimators (e.g. to obtain standard errors) is somehow difficult. Different approaches were suggested to face this problem:
+While the algortihm itself - finding parameters $\bm{\hat\theta}$ - is feasible, the estimtaion of the variance of the estimators (e.g. to obtain standard errors) is somehow difficult. Different approaches were suggested to face this problem:
 
  * Algebraic analysis [@meilijson1989fast]
  * Monte Carlo evaluation using multiple imputation [@rubin2004multiple]
@@ -83,10 +83,9 @@ While the algortihm itself - finding parameters $\hat\theta$ - is feasible, the 
  * Resampling: Bootstrap/Jackknife
  * Supplemented EM (SEM)
 
-While methods like resampling or algebraic analysis mostly depends on iid data, SEM can be done without this assumption. Furthermore numerical methods try to calculate the variance covariance matrix directly, while SEM just computes the increase of variance, which is computational more stable. Lastly Monte Carlo evaluation need more extra code and the result depends on the number of imputations. In 1990s, when the SEM was developped by @meng1991sem, the computational power was far less than today, where it was not possible to do as many imputation as are possible today.
+While methods like resampling or algebraic analysis mostly depend on iid data, SEM can be done without this assumption. Furthermore numerical methods try to calculate the variance-covariance matrix directly, while SEM just computes the increase of variance, which is computational more stable. Lastly Monte Carlo (MC) evaluation need more extra code and the result depends on the number of imputations. In 1990s, when the SEM was developped by @meng1991sem, the computational power was far less than today, where it was not possible to do as many imputation as are possible today.
 
-In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm.
-
+In this term paper the goal is to describe the EM and SEM algorithm. The theory is done in general and afterwards applied to a bivariate normal problem. Furthermore we computed an example in `R` regarding the bivariate problem, which should give an intuition for the EM and the SEM algorithm. Finally a simulation study was done, where analytical results are compared with results from SEM and MC.
 
 # A Recap of the EM Algorithm
 
@@ -144,14 +143,14 @@ M(\bm \theta^{(t)}) &\approx M(\bm{\hat \theta}) + DM (\bm \theta^{(t)} - \bm{\h
 \iff \, \bm \theta^{(t+1)} - \bm{\hat \theta} &\approx DM (\bm \theta^{(t)} - \bm{\hat \theta})
 \end{align*}
 
-doing a taylor approximation of $M(\bm \theta^{(t)})$ at $\bm{\hat \theta}$ stopping after the linear term, where
+doing a taylor approximation of $M(\bm \theta^{(t)})$ at $\bm{\hat \theta}$ and stopping after the linear term, where
 
 \begin{equation}
 \label{eq:rate}
 DM = \left.\left( \frac{\partial M_j(\bm \theta)}{\partial \theta_i} \right) \right|_{\bm \theta = \bm{\hat \theta}}
 \end{equation}
 
-is the $d \times d$ Jacobian matrix of $M(\bm \theta) = (M_1(\bm \theta), \ldots, M_d(\bm \theta))$ evaluated at $\bm{\hat \theta}$. Hence, in the neighborhood of $\bm{\hat \theta}$, the EM algorithm converges linearly with rate matrix $DM$.
+is the $d \times d$ Jacobian matrix of $M(\bm \theta) = (M_1(\bm \theta), \ldots, M_d(\bm \theta))$ evaluated at $\bm{\hat \theta}$. Hence, in the neighborhood of $\bm{\hat \theta}$, the EM algorithm converges approximately linear with rate matrix $DM$.
 
 
 # The SEM algorithm
@@ -160,8 +159,9 @@ In comparison to multiple imputation methods, asymptotic variance-covariance mat
 
 
 ## Asymptotic variance-covariance matrix of $(\bm \theta - \bm{\hat \theta})$ based on $\bm \Yobs$
+\label{sec:asy-cov}
 
-The desired asymptotic variance-covariance matrix of $(\bm \theta - \bm{\hat \theta})$ based on $\bm \Yobs$ is given by the inverse of the observed information matrix, i.e.
+The desired asymptotic variance-covariance matrix of $(\bm \theta - \bm{\hat \theta})$ based on $\bm \Yobs$ is given by the inverse of the observed information matrix[^3], i.e.
 
 $$
 V = \I_{o}^{-1}(\bm{\hat \theta} \, | \, \bm \Yobs),
@@ -197,10 +197,6 @@ and $\Delta V$, the increase due to missing data, is given by
 
 where $DM$ is the rate matix from (\ref{eq:rate}) and $I_d$ is the $d$-dimensional identity matrix. We will now show, why the decomposition in (\ref{eq:V}) holds.
 
-<!-- TODO: How is the (well-known) asymptotic variance V derived? -->
-<!-- explain why only large sample i.e. asymptotic -->
-<!-- Explain relation to fisher information matrix (regularity / large sample) -->
-
 ## Proof that $V = V_c + \Delta V$
 
 From Bayes' rule on densities, we have the factorization
@@ -219,9 +215,9 @@ L(\bm \theta \, | \, \bm \Yobs) &= \log f(\bm \Yobs \, | \, \bm \theta)\\
 Taking second derivatives and the expectation over the conditional distribution $f(\bm \Ymis \, | \, \bm \Yobs , \bm \theta)$, we further get that
 
 \begin{align*}
-&&\E\left[\frac{\partial^2 L(\bm \theta \, | \, \bm \Yobs)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] &= \E\left[\frac{\partial^2 L(\bm \theta \, | \, \bm Y)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] - \E\left[\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right]\\
-\iff &&-\frac{\partial^2 L(\bm \theta \, | \, \bm \Yobs)}{\partial \bm \theta \cdot \partial \bm \theta} &= \E\left[-\frac{\partial^2 L(\bm \theta \, | \, \bm Y)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] - \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta} \, | \, \bm \Yobs, \bm \theta \right] \\
-\iff &&\I_o(\bm \theta \, | \, \bm \Yobs) &= \E\left[\I_c(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta \right] - \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial\bm \theta \cdot \partial\bm \theta} \, | \, \bm \Yobs, \bm \theta \right].
+&&\E\left[\frac{\partial^2 L(\bm \theta \, | \, \bm \Yobs)}{\partial \bm \theta \cdot \partial \bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right] &= \E\left[\frac{\partial^2 L(\bm \theta \, | \, \bm Y)}{\partial \bm \theta \cdot \partial \bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right] - \E\left[\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right]\\
+\iff &&-\frac{\partial^2 L(\bm \theta \, | \, \bm \Yobs)}{\partial \bm \theta \cdot \partial \bm \theta} &= \E\left[-\frac{\partial^2 L(\bm \theta \, | \, \bm Y)}{\partial \bm \theta \cdot \partial \bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right] - \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial \bm \theta \cdot \partial \bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right] \\
+\iff &&\I_o(\bm \theta \, | \, \bm \Yobs) &= \E\left[\I_c(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta \right] - \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial\bm \theta \cdot \partial\bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right].
 \end{align*}
 
 Evaluating this equation at $\bm \theta = \bm{\hat \theta}$ gives
@@ -234,7 +230,7 @@ Evaluating this equation at $\bm \theta = \bm{\hat \theta}$ gives
 where 
 
 $$
-\I_{om} = \left. \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial\bm \theta \cdot \partial\bm \theta} \, | \, \bm \Yobs, \bm \theta \right] \right\rvert_{\bm \theta = \bm{\hat \theta}}
+\I_{om} = \left. \E\left[-\frac{\partial^2 \log f(\bm \Ymis \, | \, \bm \Yobs, \bm \theta)}{\partial\bm \theta \cdot \partial\bm \theta} \, \Big| \, \bm \Yobs, \bm \theta \right] \right\rvert_{\bm \theta = \bm{\hat \theta}}
 $$
 
 can be viewed as the missing information. Equation (\ref{eq:informationprinciple}) is also called *missing information principle* with the nice interpretation
@@ -271,7 +267,7 @@ This representation of $V$ is the ansatz of the SEM algorithm, which consists of
 
 ## Evaluation of $V_c$ for exponential families
 
-We consider the evaluation of $V_c = \I_{oc}^{-1}$ for the case that the complete-data density $f(\bm Y \, | \, \bm \theta)$ is from an exponential family, since this is most common in practical applications. This means that the complete-data density has the following representation
+We consider the evaluation of $V_c = \I_{oc}^{-1}$ for the case that the complete-data density $f(\bm Y \, | \, \bm \theta)$ is from an *exponential family*, since this is most common in practical applications. It means that the complete-data density has the following representation
 
 $$
 f(\bm Y \, | \, \bm \theta) = h(\bm Y) \exp\{\eta(\bm \theta)^T T(\bm Y) - A(\bm \theta)\} = h(\bm Y) \exp\left\{\sum_{i=1}^s\eta_i(\bm \theta) T_i(\bm Y) - A(\bm \theta) \right\},
@@ -285,16 +281,16 @@ $$
 L(\bm \theta \, | \, \bm Y) = \log f(\bm Y \, | \, \bm \theta) = \log h(\bm Y) + \eta(\bm \theta)^T T(\bm Y) - A(\bm \theta)
 $$
 
-which means that the complete-data log-likelihood is linear in the sufficient statistics $T(\bm Y)$, i.e. $L(\bm \theta \, | \, \bm Y) = L(\bm \theta \, | \, T(\bm Y))$. This means that in order to compute the E step for exponential families, we practically just have to evaluate the conditional expectation of the sufficient statistics $\E[T(\bm Y) \, | \, \bm \Yobs, \bm \theta^{(t)}]$. Furthermore, linearity in the log-likelihood implies that the complete-data information is also linear in $T(\bm Y)$, that is $\I_{c}(\bm \theta \, | \, \bm Y) = \I_{c}(\bm \theta \, | \, T(\bm Y))$. Therefore, from the definition of $\I_{oc}$ in (\ref{eq:Ioc}), we get that
+which means that the complete-data log-likelihood is linear in the sufficient statistics $T(\bm Y)$, i.e. $L(\bm \theta \, | \, \bm Y) = L(\bm \theta \, | \, T(\bm Y))$. Therefore, in order to compute the E step for exponential families, we practically just have to evaluate the conditional expectation of the sufficient statistics $\E[T(\bm Y) \, | \, \bm \Yobs, \bm \theta^{(t)}]$. Furthermore, linearity in the log-likelihood implies that the complete-data information is also linear in $T(\bm Y)$, that is $\I_{c}(\bm \theta \, | \, \bm Y) = \I_{c}(\bm \theta \, | \, T(\bm Y))$. Therefore, from the definition of $\I_{oc}$ in (\ref{eq:Ioc}), we get that
 
 \begin{align*}
 \I_{oc} &= \E[\I_{c}(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta ] \bigg\rvert_{\bm \theta = \bm{\hat \theta}}\\
 &= \I_{c}(\bm{\hat \theta} \, | \, T^*(\bm \Yobs)),
 \end{align*}
 
-by linearity in $T(\bm Y)$ with $T^*(\bm \Yobs) = \E[T(\bm Y) \, | \, \bm \Yobs, \bm{ \hat \theta}]$, which is obtained in the very last E step of the EM procedure. Hence, we can obtain $V_c = \I_{oc}^{-1}$ simply by plugging in the conditional expectation of the sufficient statistics $T^*(\bm \Yobs)$ computed in the very last E step into the inverse of $\I_{c}(\bm \theta \, | \, T(\bm Y))$ evaluated at $\bm \theta = \bm{\hat \theta}$.
+by linearity in $T(\bm Y)$ with $T^*(\bm \Yobs) = \E[T(\bm Y) \, | \, \bm \Yobs, \bm{ \hat \theta}]$, which is obtained in the very last E step of the EM procedure. Hence, we can obtain $V_c = \I_{oc}^{-1}$ simply by plugging in the conditional expectation of the sufficient statistics $T^*(\bm \Yobs)$ computed in the last E step into the inverse of $\I_{c}(\bm \theta \, | \, T(\bm Y))$ evaluated at $\bm \theta = \bm{\hat \theta}$.
 
-When the exponential family is regular (i.e. when $s = d$ and the Jacobian of $\eta(\bm \theta)$ has full rank) the evaluation of $V_c = \I_{oc}^{-1}$ is even simpler. In this case, the complete-data information matrix $\I_{oc}$ is just the standard Fisher information matrix evaluated in $\bm{\hat \theta}$, i.e.
+When the exponential family is regular (i.e. when $s = d$ and the Jacobian of $\eta(\bm \theta)$ has full rank) the evaluation of $V_c = \I_{oc}^{-1}$ is even simpler. In this case, the complete-data information matrix $\I_{oc}$ is just the usual Fisher information matrix evaluated in $\bm{\hat \theta}$, i.e.
 
 $$
 \I_{oc} = \I(\bm{\hat \theta}), \qquad \I(\bm \theta) = \E[\I_c(\bm \theta \, | \, \bm Y) \, | \, \bm \theta].
@@ -332,14 +328,11 @@ if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \
 
 <!-- Optional: Alternatives for approximation of DM -->
 
-
 <!-- ## Notes -->
 <!-- It is important to emphasize that the variance-covariance matrix obtained from SEM is based on the second derivatives of the observed-data log-likelihood and only is inferentially valid asymptotically, i.e. for large samples. -->
 <!-- The more normal the likelihood, the better the approximation. Therefore, transformations are useful in order to improve the results. (e.g. log(variance), etc.) -->
 
 ## The algorithm
-
-
 
 # Application
 
@@ -435,6 +428,34 @@ for the missing values $i = m+1, \ldots, n$ in the $t$-th iteration which is fam
 
 then gives the parameter updates $\bm \theta^{(t+1)}$ of the **M step**. Note that since there are only missing values for $Y_2$, the parameters of $Y_1$ converge immediately after the first EM iteration with $\hat \mu_1 = \bm{\bar y_1}$ and $\hat \sigma_{11} = T_{11}/n - \bm{\bar y_1}^2$.
 
+### No missing information in some components
+
+In a bivariate case, where only one variable contains missing data and the other variable is complete, the calculation of $V$ changes. Therefore remind equation \eqref{eq:V} in section \ref{sec:asy-cov}. In this case the parameter $\bm\theta$ for the complete data converges in just one step, indipendent of the initial value. The denominator of equation \eqref{eq:rateseq} will directly be zero and therefore a rate cannot be obtained using SEM. Since we know that $M(\bm\theta)$ for the complete data component is constant, we can directly state that $r_{ij} = 0$ for that component and its calculation is not necessary. Therefore the matrix $DM$ is given by
+
+$$
+DM = \begin{pmatrix} 0 & A\\ 0 & DM^* \end{pmatrix},
+$$
+
+where $DM^*$ is a quadratic submatrix of size $d_2 \times d_2$ containing the parameter rates for the incomplete data and $A$ is a matrix of size $d_1 \times d_2$. The upper left area is a $d_1 \times d_1$ matrix, where $d_1$ is the dimension of the parameters from the complete data and $d_2$ the dimension of the missing data parameters, where holds that $d_1 + d_2 = d$. If we assume that $I_{oc}^{-1}$ is given by
+
+$$
+I_{oc}^{-1} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 \end{pmatrix},
+$$
+
+the variance $V$ is can be stated as
+
+$$
+V = I_{oc}^{-1} + \begin{pmatrix} 0 & 0\\ 0 & \Delta V^* \end{pmatrix} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 + \Delta V^* \end{pmatrix}.
+$$
+
+The matrix
+
+$$
+\Delta V^* = (G_3 - G_2^TG_1^{-1}G_2) DM^*(I_{d_2}-DM^*)^{-1}
+$$
+
+is proven in appendix of @meng1991sem, where matrix $A$ is identified with $A = -G_1^{-1} G_2 DM^*$.
+
 ### The complete-data Fisher information
 
 Since the bivarate normal is also a *regular* exponential family, in order to evaluate the asymptotic complete-data variance-covariance matrix $V_c = \I_{oc}^{-1}$, we can use the standard Fisher information matrix $\I(\bm \theta)$ as mentioned in section 3.3 because for regular exponential families we have $\I_{oc} = \I(\bm \theta)$. The Fisher information for the bivariate normal can be derived from the general expression of the Fisher information for the multivariate normal distribution.[^2] We get
@@ -469,35 +490,6 @@ $$
 
 Now we have all the formulas needed to implement the EM and SEM algorithm for the bivariate normal example.
 
-
-### No missing information in some components
-
-In a bivariate case, where only one variable contains missing data and the other variable is complete, the calculation of $V$ changes. In this case the parameter $\bm\theta$ for the complete data converges in just one step, indipendent of the initial value. The denominator of (??) will directly be zero and therefore a rate cannot be obtained using SEM. Since we know that $M(\bm\theta)$ for the complete data component is constant, we can directly state that $r_{ij} = 0$ for that component and its calculation is not necessary. Therefore the matrix $DM$ is given by
-
-$$
-DM = \begin{pmatrix} 0 & A\\ 0 & DM^* \end{pmatrix},
-$$
-
-where $DM^*$ is a quadratic submatrix of size $d_2 \times d_2$ containing the parameter rates for the incomplete data and $A$ is a matrix of size $d_1 \times d_2$. The upper left area is a $d_1 \times d_1$ matrix, where $d_1$ is the dimension of the parameters from the complete data and $d_2$ the dimension of the missing data parameters, where holds that $d_1 + d_2 = d$. We If we assume that $I_{oc}^{-1}$ is given by
-
-$$
-I_{oc}^{-1} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 \end{pmatrix},
-$$
-
-the variance $V$ is can be stated as
-
-$$
-V = I_{oc}^{-1} + \begin{pmatrix} 0 & 0\\ 0 & \Delta V^* \end{pmatrix} = \begin{pmatrix} G_1 & G_2\\ G_2^T & G_3 + \Delta V^* \end{pmatrix}.
-$$
-
-The matrix
-
-$$
-\Delta V^* = (G_3 - G_2^TG_1^{-1}G_2) DM^*(I_{d_2}-DM^*)^{-1}
-$$
-
-is proven in appendix of @meng1991sem, where matrix $A$ is identified with $A = -G_1^{-1} G_2 DM^*$.
-
 ## Real data application
 
 In this section we want to introduce the main algorithm for EM and SEM computation. Afterwards the results of @meng1991sem in their bivariate example in section 4.4 will be reproduced to verify, that our implementation runs correctly.
@@ -511,6 +503,7 @@ In this section we want to introduce the main algorithm for EM and SEM computati
 <!--Footnotes-->
 [^1]: One can show that $L(\theta^{(t+1)} \, | \, \bm \Yobs) - L(\theta^{(t)} \, | \, \bm \Yobs) \geq 0$ using Jensen's inequality. See for example the original EM paper by @dempster1977maximum for a detailed proof.
 [^2]: See for example <https://en.wikipedia.org/wiki/Fisher_information#Multivariate_normal_distribution>.
+[^3]: Note that for ML estimators holds $(\bm\theta - \bm{\hat\theta}) \overset{d}{\longrightarrow} N(0,V)$ for $n \to\infty$, see ch. 9.1 in @little2014statistical.
 
 
 <!-- References -->

@@ -121,7 +121,7 @@ y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
 data <- matrix(c(x,y), ncol = 2)
 
 # Run algorithm
-result <- em_algorithm(data, tolerance = 10^-12)
+result <- em_algorithm(data, tolerance = 10^-24)
 
 # Plot convergence of log likelihood
 plot(result$loglike, type = "l", xlab = "# of EM steps", ylab = "Log-Likelihood")
@@ -215,8 +215,34 @@ calculateDM <- function(data, params, tolerance) {
   return(DM)
 }
 
+# calculateDM2 <- function(data, params, tolerance) {
+#   indicator <- is.na(data[,2])
+#   mle <- unlist(tail(params, 1)[[1]])
+#   DM <- matrix(nrow = 3, ncol = 3)
+#   estimate <- c(2,4,6)
+#   
+#   for(t in 1:(length(params)-1)) {
+#     for(i in 1:3) {
+#       theta_t_i <- mle
+#       theta_t_i[estimate[i]] <- unlist(params[[t]])[estimate[i]]
+#       
+#       tild_theta_t_i <- emstep(data, indicator, list(mu = theta_t_i[1:2], cov = matrix(theta_t_i[3:6], 2, 2)))
+#       
+#       top <- unlist(tild_theta_t_i)[estimate]-mle[estimate]
+#       bot <- unlist(params[[t]])[estimate[i]]-mle[estimate[i]]
+#       DM[i,] <- top/bot
+#     }
+#     print(DM)
+#     #print(top[[1]])
+#     #print(bot)
+#   }
+#   
+# }
+
 sem_algorithm <- function(data, params, tolerance) {
   n <- length(data[,1])
+  
+  # params <- result$params
   
   # Get DM* matrix
   DM <- calculateDM(data, params, tolerance)
@@ -224,13 +250,32 @@ sem_algorithm <- function(data, params, tolerance) {
   # Get covariance matrix of MLE estimate (last step from em algorithm)
   cov <- tail(params, 1)[[1]]$cov
   
+  # Preparation of c
+  c <- -cov[1,2]^6+3*cov[1,1]*cov[2,2]*cov[1,2]^4-3*(cov[1,1]*cov[2,2]*cov[1,2])^2+(cov[1,1]*cov[2,2])^3
+  
+  # Calculate G1 if I_oc
+  G1_11 <- cov[1,1]
+  G1_12 <- 0
+  G1_22 <- 2*cov[1,1]^2
+  
+  G1 <- (1/n)*matrix(c(G1_11, G1_12, G1_12, G1_22), nrow = 2, ncol = 2)
+  
+  # Calculate G2 if I_oc
+  G2_11 <- cov[1,2]
+  G2_12 <- 0
+  G2_13 <- 0
+  G2_21 <- 0
+  G2_22 <- 2*cov[1,1]*cov[2,2]
+  G2_23 <- 2*det(cov)^2*(cov[1,1]*cov[2,2]*cov[1,2]^2 - cov[1,2]^4)/c
+  
+  G2 <- (1/n)*matrix(c(G2_11, G2_12, G2_13, G2_21, G2_22, G2_23),
+                     nrow = 2, ncol = 3, byrow = TRUE)
+  
   # Calculate G3 of I_oc
   G3_11 <- cov[2,2]
   G3_12 <- 0
   G3_13 <- 0
-  G3_22 <- det(cov)^2*((cov[1,1]*cov[2,2])^2 - cov[1,2]^4)/
-    (-cov[1,2]^6 + 3*cov[1,1]*cov[2,2]*cov[1,2]^4
-     - 3*(cov[1,1]*cov[2,2]*cov[1,2])^2 + (cov[1,1]*cov[2,2])^3)
+  G3_22 <- det(cov)^2*((cov[1,1]*cov[2,2])^2 - cov[1,2]^4)/c
   G3_23 <- 2*cov[2,2]*cov[1,2]
   G3_33 <- 2*cov[2,2]^2
   
@@ -238,7 +283,7 @@ sem_algorithm <- function(data, params, tolerance) {
                        G3_13, G3_23, G3_33), nrow = 3, ncol = 3)
   
   # Compute Delta V*
-  DV <- G3%*%DM%*%solve(diag(3)-DM)
+  DV <- (G3 - t(G2)%*%solve(G1)%*%G2)%*%DM%*%solve(diag(3)-DM)
   
   return(G3 + DV)
 }
