@@ -724,15 +724,15 @@ print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu[2],
       comment = FALSE)
 ```
 
-
-
-```{r likelihood convergence, fig.cap = "Convergence of observed log likelihood. Increase in steps corresponds to increase in observed log likelihood. \\label{fig:likelihood-convergence}", echo = FALSE}
+```{r likelihood convergence, fig.cap = "Convergence of observed log likelihood. \\label{fig:likelihood-convergence}", echo = FALSE}
 # Plot convergence of log likelihood
 plot(result$loglike, type = "l", xlab = "Number of EM iterations", ylab = "Log-Likelihood")
 grid()
 ```
 
-```{r contour plot, fig.height = 6, fig.cap = "Contour plot of EM algorithm. Iteration 0 corresponds to the initial condition.\\label{fig:contour}", echo = FALSE}
+In Figure \ref{fig:likelihood-convergence}, we can see that the observed log-likelihood converges to some maximum in the parameters from the EM iterations. Figure \ref{fig:contour} shows the densities of the bivariate normal at different stages of the EM algorithm.
+
+```{r contour plot, fig.height = 6, fig.cap = "Contour plots of bivariate normal at different stages of the EM algorithm. \\label{fig:contour}", echo = FALSE}
 # Contour plot
 par(mfrow=c(2,2))
 for(i in c(1,2,3,length(result$params))) {
@@ -743,6 +743,7 @@ for(i in c(1,2,3,length(result$params))) {
                         alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
 }
 ```
+
 
 ```{r sem}
 calculateRatio <- function(data, params, i, j, tolerance) {
