@@ -4,6 +4,7 @@
 #data(chorizonDL, package = "VIM")
 #data(testdata, package = "VIM")
 
+library(MASS)
 library(mixtools)
 
 ####################
@@ -76,7 +77,7 @@ objective <- function(data, indicator, params) {
 em_algorithm <- function(data, tolerance) {
   
   params <- initialize(data)
-  indicator <- is.na(y)
+  indicator <- is.na(data[,2])
   vecLoglike <- NULL
   vecParams <- list(params)
   
@@ -111,7 +112,7 @@ y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
 data <- matrix(c(x,y), ncol = 2)
 
 # Run algorithm
-result <- em_algorithm(data, tolerance = 10^-8)
+result <- em_algorithm(data, tolerance = 10^-12)
 
 # Plot convergence of log likelihood
 plot(result$loglike, type = "l", xlab = "# of EM steps", ylab = "Log-Likelihood")
@@ -153,31 +154,35 @@ calculateRatio <- function(data, params, i, j, tolerance) {
     theta_t_i <- mle
     theta_t_i[[i]] <- theta_t[[i]]
     
-    # Do EM step using theta_i, first convet parameters in list and then do step
-    names(theta_t_i) <- NULL
-    paramList <- list(mu = theta_t_i[1:2], cov = matrix(theta_t_i[3:6], nrow = 2, ncol = 2))
+    # Do EM step using theta_i: convert parameters to list, then do step
+    paramList <- list(mu = theta_t_i[1:2],
+                      cov = matrix(theta_t_i[3:6], nrow = 2, ncol = 2))
     theta_t_1_i <- unlist(emstep(data, indicator, paramList))
     
     # Calculate ratio
     #print(paste(theta_t_1_i[[j]],mle[[j]],theta_t[[i]],mle[[i]]))
     vecR <- append(vecR, (theta_t_1_i[[j]] - mle[[j]])/(theta_t[[i]] - mle[[i]]))
     
-    # Check if convergence criterion is hit
-    last <- length(vecR)
-    if(last > 2 && abs(vecR[last] - vecR[last-1]) < tolerance) {
-      break
-    }
+    # Increase iteration
     t <- t+1
-    if(t > length(result$params)) {
+    
+    # Check if convergence criterion is hit or we're running out of original estimations
+    last <- length(vecR)
+    if((last >= 2 && abs(vecR[last] - vecR[last-1]) < tolerance) || t >= length(result$params)) {
       break
     }
   }
+  
+  #print(vecR)
   
   # Just return last rate
   return(vecR[length(vecR)])
 }
 
-calculateDM <- function(data, params, estimates, tolerance) {
+calculateDM <- function(data, params, tolerance) {
+  # Parameters to estimate in DM*
+  estimates <- c(2,4,6)
+  
   # Number of parameters to calculate variance for
   d <- length(estimates)
   
@@ -187,8 +192,8 @@ calculateDM <- function(data, params, estimates, tolerance) {
   # Calculate any r_ij and store in DM
   for(i in 1:d) {
     for(j in 1:d) {
-      print(paste(i,j))
       DM[i,j] <- calculateRatio(data, params, estimates[i], estimates[j], tolerance)
+      print(paste(i,j,":",DM[i,j]))
     }
   }
   
@@ -196,24 +201,83 @@ calculateDM <- function(data, params, estimates, tolerance) {
   return(DM)
 }
 
-sem_algorithm <- function(data, params, estimates, tolerance) {
-  # Get DM matrix
-  DM <- calculateDM(data, params, estimates, tolerance)
+sem_algorithm <- function(data, params, tolerance) {
+  n <- length(data[,1])
   
-  # Calculate I_oc
-  # ...
+  # Get DM* matrix
+  DM <- calculateDM(data, params, tolerance)
+  
+  # Get covariance matrix of MLE estimate (last step from em algorithm)
+  cov <- tail(params, 1)[[1]]$cov
+  
+  # Calculate G3 of I_oc
+  G3_11 <- cov[2,2]
+  G3_12 <- 0
+  G3_13 <- 0
+  G3_22 <- 2*cov[2,2]^2
+  G3_23 <- 2*cov[2,2]*cov[1,2]
+  G3_33 <- det(cov)^2*((cov[1,1]*cov[2,2])^2 - cov[1,2]^4)/
+    (-cov[1,2]^6 + 3*cov[1,1]*cov[2,2]*cov[1,2]^4
+     - 3*(cov[1,1]*cov[2,2]*cov[1,2])^2 + (cov[1,1]*cov[2,2])^3)
+  
+  G3 <- (1/n)*matrix(c(G3_11, G3_12, G3_13, G3_12, G3_22, G3_23,
+                       G3_13, G3_23, G3_33), nrow = 3, ncol = 3)
+  
+  # Compute Delta V*
+  DV <- G3%*%DM%*%solve(diag(3)-DM)
+  
+  return(G3 + DV)
 }
 
 # 1: mu1, 2: mu2, 3: s_xx, 4/5: s_xy, 6: s_yy
-DM <- calculateDM(data, params_trans, c(2,6), 10^-4)
+DM <- calculateDM(data, result$params, 10^-4)
 #r_mu2 <- sem_algorithm(data, result$params, c(2,4,6), 10^-4)
 
 
+obsinfo <- function(params) {
+  
+}
 
+##################
+### Simulation ###
+##################
 
+simulation <- function(data, N, Sim) {
+  results <- matrix(1:6*Sim, nrow = Sim, ncol = 6)
+  
+  for(iSim in 1:Sim) {
+    result <- em_algorithm(data[((iSim-1)*N+1):(iSim*N),], tolerance = 10^-4)
+    results[iSim,] <- unlist(tail(result$params, 1)[[1]])
+  }
+  
+  # Calculate MC SD values
+  sd <- apply(results[,c(1,2,3,4,6)], 2, function(col) {sd(col)})
+  
+  # Calculate average observed information values
+  # ...
+  
+  # Calculate SEM
+  # ...
+  
+  return(sd)
+}
 
+Sim <- 1000 # 1000
+N <- 250 # 250
 
+data_mcar <- data_mar <- mvrnorm(N*Sim, c(100,12),
+                                 matrix(c(169,19.5,19.5,9), nrow = 2, ncol = 2))
 
+# Generate MCAR data
+na <- rbinom(N*Sim,1,0.5)
+data_mcar[,2][as.logical(na)] <- NA
+
+results_mcar <- simulation(data_mcar, N, Sim)
+
+# Generate MAR data
+data_mar[,2][data_mar[,1] < median(data_mar[,1])] <- NA
+
+results_mar <- simulation(data_mar, N, Sim)
 
 
 
