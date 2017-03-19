@@ -6,6 +6,7 @@
 
 library(MASS)
 library(mixtools)
+library(plyr)
 
 ####################
 ### EM Algorithm ###
@@ -60,16 +61,24 @@ emstep <- function(data, indicator, params) {
 
 objective <- function(data, indicator, params) {
   # Calculate 2D log likelihood where x and y is observed
-  const <- -log(2*pi)
-  det <- -(1/2)*log(det(params$cov))
-  maha <- -(1/2)*mahalanobis(data[!indicator,], params$mu, params$cov)
-  log1 <- sum(const + det + maha)
+  if(sum(!indicator) > 0) {
+    const <- -log(2*pi)
+    det <- -(1/2)*log(det(params$cov))
+    maha <- -(1/2)*mahalanobis(data[!indicator,], params$mu, params$cov)
+    log1 <- sum(const + det + maha)
+  } else {
+    log1 <- 0
+  }
 
   # Calculate 1D log likelihood where just x is observed
-  const <- -(1/2)*log(2*pi)
-  det <- -(1/2)*log(params$cov[1,1])
-  maha <- -(1/2)*(data[indicator,][,1]-params$mu[1])^2/params$cov[1,1]
-  log2 <- sum(const + det + maha)
+  if(sum(indicator) > 0) {
+    const <- -(1/2)*log(2*pi)
+    det <- -(1/2)*log(params$cov[1,1])
+    maha <- -(1/2)*(data[indicator,][,1]-params$mu[1])^2/params$cov[1,1]
+    log2 <- sum(const + det + maha)
+  } else {
+    log2 <- 0
+  }
 
   return(log1+log2)
 }
@@ -168,7 +177,11 @@ calculateRatio <- function(data, params, i, j, tolerance) {
     
     # Check if convergence criterion is hit or we're running out of original estimations
     last <- length(vecR)
-    if((last >= 2 && abs(vecR[last] - vecR[last-1]) < tolerance) || t >= length(result$params)) {
+    if((last >= 2 && abs(vecR[last] - vecR[last-1]) < tolerance)) {
+      break
+    }
+    if(t >= length(params)) {
+      warning("SEM did not converge for one component.")
       break
     }
   }
@@ -181,6 +194,7 @@ calculateRatio <- function(data, params, i, j, tolerance) {
 
 calculateDM <- function(data, params, tolerance) {
   # Parameters to estimate in DM*
+  # 1: mu1, 2: mu2, 3: s_xx, 4/5: s_xy, 6: s_yy
   estimates <- c(2,4,6)
   
   # Number of parameters to calculate variance for
@@ -193,7 +207,7 @@ calculateDM <- function(data, params, tolerance) {
   for(i in 1:d) {
     for(j in 1:d) {
       DM[i,j] <- calculateRatio(data, params, estimates[i], estimates[j], tolerance)
-      print(paste(i,j,":",DM[i,j]))
+      #print(paste(i,j,":",DM[i,j]))
     }
   }
   
@@ -214,11 +228,11 @@ sem_algorithm <- function(data, params, tolerance) {
   G3_11 <- cov[2,2]
   G3_12 <- 0
   G3_13 <- 0
-  G3_22 <- 2*cov[2,2]^2
-  G3_23 <- 2*cov[2,2]*cov[1,2]
-  G3_33 <- det(cov)^2*((cov[1,1]*cov[2,2])^2 - cov[1,2]^4)/
+  G3_22 <- det(cov)^2*((cov[1,1]*cov[2,2])^2 - cov[1,2]^4)/
     (-cov[1,2]^6 + 3*cov[1,1]*cov[2,2]*cov[1,2]^4
      - 3*(cov[1,1]*cov[2,2]*cov[1,2])^2 + (cov[1,1]*cov[2,2])^3)
+  G3_23 <- 2*cov[2,2]*cov[1,2]
+  G3_33 <- 2*cov[2,2]^2
   
   G3 <- (1/n)*matrix(c(G3_11, G3_12, G3_13, G3_12, G3_22, G3_23,
                        G3_13, G3_23, G3_33), nrow = 3, ncol = 3)
@@ -229,55 +243,96 @@ sem_algorithm <- function(data, params, tolerance) {
   return(G3 + DV)
 }
 
-# 1: mu1, 2: mu2, 3: s_xx, 4/5: s_xy, 6: s_yy
-DM <- calculateDM(data, result$params, 10^-4)
-#r_mu2 <- sem_algorithm(data, result$params, c(2,4,6), 10^-4)
-
-
-obsinfo <- function(params) {
-  
-}
+#DM <- calculateDM(data, result$params, 10^-4)
+V <- sem_algorithm(data, result$params, 10^-4)
 
 ##################
 ### Simulation ###
 ##################
 
-simulation <- function(data, N, Sim) {
-  results <- matrix(1:6*Sim, nrow = Sim, ncol = 6)
+simulation <- function(data, N, nSim, tolerance) {
+  results <- vector("list", length = nSim)
+  loglikes <- vector("list", length = nSim)
+  mles <- matrix(3*nSim, nrow = nSim, ncol = 3)
   
-  for(iSim in 1:Sim) {
-    result <- em_algorithm(data[((iSim-1)*N+1):(iSim*N),], tolerance = 10^-4)
-    results[iSim,] <- unlist(tail(result$params, 1)[[1]])
+  for(iSim in 1:nSim) {
+    results[iSim] <- list(em_algorithm(data[((iSim-1)*N+1):(iSim*N),], tolerance^2))
+    loglikes[iSim] <- list(results[iSim][[1]]$loglike)
+    #print(str(results[iSim][[1]]$loglike))
+    mles[iSim,] <- unlist(tail(results[[iSim]]$params, 1)[[1]])[c(2,4,6)]
   }
   
   # Calculate MC SD values
-  sd <- apply(results[,c(1,2,3,4,6)], 2, function(col) {sd(col)})
+  #mcSd <- apply(mles, 2, function(col) {sd(col)})
+  mcSd <- apply(mles, 2, function(col) {
+    return(sqrt((1/nSim)*(sum(col^2) - sum(col)^2/nSim)))
+  })
+  names(mcSd) <- c("sd(mu2)","sd(cov12)","sd(cov22)")
+  
+  # Calculate SEM
+  semVars <- vector("list", length = nSim)
+  semVars <- matrix(3*nSim, nrow = nSim, ncol = 3)
+  for(iSim in 1:nSim) {
+    sem <- sem_algorithm(data[((iSim-1)*N+1):(iSim*N),], results[[iSim]]$params, tolerance)
+    #print(sem)
+    semVars[iSim,] <- suppressWarnings(sqrt(diag(sem)))
+  }
+  ## FIXME: Hack! diag(sem) should always be positive!!
+  if(sum(is.nan(semVars)) > 0) {
+    warning("Sem V matrix probably not positive semidefinite. Probably reached saddle point. Increase EM iterations.")
+  }
+  #semSd <- apply(semVars, 2, function(col) {mean(col[!is.nan(col)])})
+  semSd <- apply(semVars, 2, function(col) {mean(col)})
+  names(semSd) <- c("sd(mu2)","sd(cov12)","sd(cov22)")
   
   # Calculate average observed information values
   # ...
   
-  # Calculate SEM
-  # ...
-  
-  return(sd)
+  return(list(loglikes = loglikes, mles = mles, sd = list(mc = mcSd, sem = semSd)))
 }
 
-Sim <- 1000 # 1000
+nSim <- 1000 # 1000
 N <- 250 # 250
 
-data_mcar <- data_mar <- mvrnorm(N*Sim, c(100,12),
-                                 matrix(c(169,19.5,19.5,9), nrow = 2, ncol = 2))
+data <- data_mcar <- data_mar <-
+  mvrnorm(N*nSim, c(100,12), matrix(c(169,19.5,19.5,9), nrow = 2, ncol = 2))
 
 # Generate MCAR data
-na <- rbinom(N*Sim,1,0.5)
+na <- rbinom(N*nSim,1,0.5)
 data_mcar[,2][as.logical(na)] <- NA
 
-results_mcar <- simulation(data_mcar, N, Sim)
+results_mcar <- simulation(data_mcar, N, nSim, 10^-4)
+
+meanMu2 <- mean(results_mcar$mles[,1])
+mcSdMu2 <- results_mcar$sd$mc[[1]]
+plot(results_mcar$mles[,1], rep(1,nSim), pch = 16, col = rgb(0,0,0,0.1), cex = 0.8,
+     ylim = c(-0.5,1.5), ylab = "", xlab = "", yaxt = 'n',
+     main = "Standard deviation for mu_2")
+axis(2, at = c(1,0), labels = c("MC", "SEM"))
+arrows(meanMu2-mcSdMu2,1,meanMu2+mcSdMu2,1, col = "blue", code=3, length=0.1, angle = 90, lwd = 2)
+points(meanMu2, 1, pch = 16, col = "red", cex = 1.2)
+
+semSdMu2 <- results_mcar$sd$sem[[1]]
+points(results_mcar$mles[,1], rep(0,nSim), pch = 16, col = rgb(0,0,0,0.1), cex = 0.8)
+arrows(meanMu2-semSdMu2,0,meanMu2+semSdMu2,0, col = "blue", code=3, length=0.1, angle = 90, lwd = 2)
+points(meanMu2, 0, pch = 16, col = "red", cex = 1.2)
+
+
+
+# Plot MCAR result
+logs <- ldply(results_mcar$loglikes, rbind)
+plot(1, xlab = "Iteration", ylab = "Observed loglikelihood",
+     xlim = c(1,dim(logs)[2]),
+     ylim = c(min(logs, na.rm = TRUE), max(logs, na.rm = TRUE)))
+for(i in 1:length(results_mcar$loglikes)) {
+  lines(1:length(logs[i,]), logs[i,], col = rgb(0,0,1,0.1))
+}
+lines(apply(logs, 2, mean, na.rm = TRUE), col = "red")
 
 # Generate MAR data
 data_mar[,2][data_mar[,1] < median(data_mar[,1])] <- NA
 
-results_mar <- simulation(data_mar, N, Sim)
+results_mar <- simulation(data_mar, N, nSim, 10^-4)
 
 
 
