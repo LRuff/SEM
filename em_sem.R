@@ -12,12 +12,23 @@ library(plyr)
 ### EM Algorithm ###
 ####################
 
-initialize <- function(data, type = "canonical") {
+```{r em}
+initialize <- function(data) {
+  # Initalize parameters for first em step.
+  #
+  # Args:
+  #   data: 2-dimensional data matrix, where data are missing in
+  #         second component and first component is complete
+  #
+  # Returns:
+  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
+  
+  # Preparation
   x <- data[,1]
   y <- na.omit(data[,2])
   n <- length(x)
   
-  # Initalize
+  # Initalize parameters
   mu <- c(mean(x), mean(y))
   s_xx <- (1/n)*(sum(x^2) - sum(x)^2/n)
   s_yy <- (1/n)*(sum(y^2) - sum(y)^2/n)
@@ -26,15 +37,27 @@ initialize <- function(data, type = "canonical") {
   return(list(mu = mu, cov = cov))
 }
 
-emstep <- function(data, indicator, params) {
+em_step <- function(data, params) {
+  # Do one em step.
+  # Use parameters from iteration t and compute iteration t+1.
+  #
+  # Args:
+  #   data:   2-dimensional data matrix, where data are missing in
+  #           second component and first component is complete
+  #   params: list of parameters containing mu and cov
+  #
+  # Returns:
+  #   A list containing 6 parameters, 2 for mean and 4 for covariance matrix
+  
+  # Preparation
   mu <- params$mu
   cov <- params$cov
   x <- data[,1]
   y <- data[,2]
+  indicator <- is.na(y)
   n <- length(x)
   
   ## E step, update data
-  
   # Regression estimation
   beta_1 <- cov[1,2]/cov[1,1]
   beta_0 <- mu[2] - beta_1*mu[1]
@@ -49,17 +72,28 @@ emstep <- function(data, indicator, params) {
   sum_yy <- sum(c(y[indicator]^2 + sig_y_x, y[!indicator]^2))
   
   ## M step, update parameters
-  
   mu[2] <- mean(y)
   
   cov[1,2] <- cov[2,1] <-  (1/n)*(sum_xy - (sum_y*sum(x))/n)
   cov[2,2] <- (1/n)*(sum_yy - sum_y^2/n)
   
-  # Return data and params
   return(params = list(mu = mu, cov = cov))
 }
 
-objective <- function(data, indicator, params) {
+objective <- function(data, params) {
+  # Calculate observed log likelihood using observed date and given parameters.
+  #
+  # Args:
+  #   data:   2-dimensional data matrix, where data are missing in
+  #           second component and first component is complete
+  #   params: list of parameters containing mu and cov
+  #
+  # Returns:
+  #   Log likelihood value
+  
+  # Preparation
+  indicator <- is.na(data[,2])
+  
   # Calculate 2D log likelihood where x and y is observed
   if(sum(!indicator) > 0) {
     const <- -log(2*pi)
@@ -69,7 +103,7 @@ objective <- function(data, indicator, params) {
   } else {
     log1 <- 0
   }
-
+  
   # Calculate 1D log likelihood where just x is observed
   if(sum(indicator) > 0) {
     const <- -(1/2)*log(2*pi)
@@ -79,24 +113,37 @@ objective <- function(data, indicator, params) {
   } else {
     log2 <- 0
   }
-
+  
+  # Sum both results to obtain observed log likelihood and return
   return(log1+log2)
 }
 
 em_algorithm <- function(data, tolerance) {
+  # Run EM algorithm.
+  #
+  # Args:
+  #   data:      2-dimensional data matrix, where data are missing in
+  #              second component and first component is complete
+  #   tolerance: convergence criterion
+  #
+  # Returns:
+  #   List containing vector of log likelihoods for every step
+  #   and list of parameters from all steps, including mle estimate,
+  #   orresponding to last em step
   
+  # Preparation
   params <- initialize(data)
-  indicator <- is.na(data[,2])
   vecLoglike <- NULL
-  vecParams <- list(params)
+  lParams <- list(params)
   
+  # Repeat as long as convergence criterion is hit
   repeat {
     # EM step
-    params <- emstep(data, indicator, params)
-    vecParams <- append(vecParams, list(params))
+    params <- em_step(data, params)
+    lParams <- append(lParams, list(params))
     
     # Calculate objective (likelihood)
-    vecLoglike <- append(vecLoglike, objective(data, indicator, params))
+    vecLoglike <- append(vecLoglike, objective(data, params))
     
     # Check if convergence criterion is hit
     last <- length(vecLoglike)
@@ -105,35 +152,25 @@ em_algorithm <- function(data, tolerance) {
     }
   }
   
-  return(list(loglike = vecLoglike, params = vecParams))
+  return(list(loglike = vecLoglike, params = lParams))
 }
 
 # Data
 
-# Enders example
-#x <- c(78,84,84,85,87,91,92,94,94,96,99,105,105,106,108,112,113,115,118,134)
-#y <- c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,7,10,11,15,10,10,12,14,16,12)
-
 # Paper example 3
 x <- c(8,6,11,22,14,17,18,24,19,23,26,40,4,4,5,6,8,10)
 y <- c(59,58,56,53,50,45,43,42,39,38,30,27,NA,NA,NA,NA,NA,NA)
-
 data <- matrix(c(x,y), ncol = 2)
 
 # Run algorithm
-result <- em_algorithm(data, tolerance = 10^-24)
+result <- em_algorithm(data, tolerance = 10^-12)
 
 # Plot convergence of log likelihood
 plot(result$loglike, type = "l", xlab = "# of EM steps", ylab = "Log-Likelihood")
 grid()
 
-# Plot behavior of mu2
-mu2 <- sapply(result$params, function(param){param$mu[2]})
-plot(mu2, type = "l", xlab = "# of EM steps", ylab = "mu_2")
-grid()
-
-# contour plot
-par(mfrow=c(1,4))
+# Contour plot
+par(mfrow=c(2,2))
 for(i in c(1,2,3,length(result$params))) {
   plot(data, pch = 20, xlim = c(-10,45), ylim = c(15,85),
        xlab = "x", ylab = "y", main = paste("EM iteration", i))
@@ -142,6 +179,7 @@ for(i in c(1,2,3,length(result$params))) {
                         alpha = (j*0.1), npoints = 250, col=rgb(0,0,0,alpha=0.4))
 }
 par(mfrow=c(1,1))
+```
 
 #####################
 ### SEM Algorithm ###
@@ -166,7 +204,7 @@ calculateRatio <- function(data, params, i, j, tolerance) {
     # Do EM step using theta_i: convert parameters to list, then do step
     paramList <- list(mu = theta_t_i[1:2],
                       cov = matrix(theta_t_i[3:6], nrow = 2, ncol = 2))
-    theta_t_1_i <- unlist(emstep(data, indicator, paramList))
+    theta_t_1_i <- unlist(em_step(data, paramList))
     
     # Calculate ratio
     #print(paste(theta_t_1_i[[j]],mle[[j]],theta_t[[i]],mle[[i]]))
@@ -226,7 +264,7 @@ calculateDM <- function(data, params, tolerance) {
 #       theta_t_i <- mle
 #       theta_t_i[estimate[i]] <- unlist(params[[t]])[estimate[i]]
 #       
-#       tild_theta_t_i <- emstep(data, indicator, list(mu = theta_t_i[1:2], cov = matrix(theta_t_i[3:6], 2, 2)))
+#       tild_theta_t_i <- em_step(data, list(mu = theta_t_i[1:2], cov = matrix(theta_t_i[3:6], 2, 2)))
 #       
 #       top <- unlist(tild_theta_t_i)[estimate]-mle[estimate]
 #       bot <- unlist(params[[t]])[estimate[i]]-mle[estimate[i]]
@@ -380,7 +418,7 @@ data_mar[,2][data_mar[,1] < median(data_mar[,1])] <- NA
 results_mar <- simulation(data_mar, N, nSim, 10^-4)
 
 
-
+library(coarseDataTools)
 
 
 
