@@ -744,6 +744,9 @@ for(i in c(1,2,3,length(result$params))) {
 }
 ```
 
+In our implementation of the SEM algorithm, which can be found in the .Rmd-file, unfortunately we still receive a non symmetric $\Delta V$. We obtain the correct value for $\mu_2$ in $DM$, but because of the different parameterization, we cannot compare the other values directly. The sources of error could be two-fold: (1) the implementation (or formula derivation) of the inverse Fisher information matrix is not correct or (2) the computation of $DM$ has coding errors.
+
+As emphasized in the paper, one nice feature of SEM is, that coding errors or numerical errors can be diagnosed from the symmetry of $\Delta V$, which unfortunately in our case, is still asymmetric.
 
 ```{r sem}
 calculateRatio <- function(data, params, i, j, tolerance) {
@@ -1052,7 +1055,7 @@ plotSDMu2(results_mcar, nSim)
 plotLikeli(results_mcar, nSim)
 ```
 
-```{r mar, cache = TRUE}
+```{r mar ana, cache = TRUE}
 # Generate MAR data
 data_mar[,2][data_mar[,1] < median(data_mar[,1])] <- NA
 
@@ -1063,7 +1066,7 @@ results_mar <- simulation(data_mar, N, nSim, tolEM = 10^-8, tolSEM = 10^-4)
 results_mar$sd
 ```
 
-```{r mar, echo = FALSE}
+```{r mar plots, echo = FALSE}
 # Plot results
 plotSDMu2(results_mar, nSim)
 plotLikeli(results_mar, nSim)
