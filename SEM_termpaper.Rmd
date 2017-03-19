@@ -13,7 +13,9 @@ header-includes:
 - \pagenumbering{arabic}
 - \numberwithin{equation}{section}
 - \newcommand{\Yobs}{Y_{\text{obs}}}
+- \newcommand{\yobs}{y_{\text{obs}}}
 - \newcommand{\Ymis}{Y_{\text{mis}}}
+- \newcommand{\ymis}{y_{\text{mis}}}
 - \newcommand{\E}{\mathbb{E}}
 - \newcommand{\R}{\mathbb{R}}
 - \newcommand{\argmax}{\text{argmax}}
@@ -341,9 +343,132 @@ if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \
 
 # Application
 
-<!-- stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em) -->
+In this section, we will apply the SEM algorithm to a bivariate normal example. To verify our implementation, we will first reproduce the results of @meng1991sem in their bivariate normal example. Afterwards, we will conduct a simulation study to evaluate the quality of the SEM algorithm by comparing the results to the direct estimation of the large-sample observed-data covariance matrix, which is possible to compute in the bivariate normal example, and by performing the simulation for different missing-data mechanisms. Let's first introduce the bivariate normal model.
 
-## Bivariate normal
+## A bivariate normal model
+
+We consider an i.i.d. sample of size $n$ from a bivariate normal distribution:
+
+$$
+\left(\begin{array}{c} Y_{1,1}\\ Y_{1,2}\\ \end{array} \right), \ldots, \left(\begin{array}{c} Y_{n,1}\\ Y_{n,2}\\ \end{array} \right) \; \overset{\text{i.i.d}}{\sim} \; N\left( \bm \mu = \left(\begin{array}{c} \mu_1\\ \mu_2\\ \end{array} \right), \bm \Sigma = \left(\begin{array}{cc} \sigma_{11} & \sigma_{12}\\ \sigma_{21} & \sigma_{22}\\ \end{array} \right) \right),
+$$
+
+where $\bm Y_1 = (Y_{1,1}, \ldots, Y_{n,1})$ is fully observed but from $\bm Y_2 = (Y_{1,2}, \ldots, Y_{n,2})$ we only observe $m < n$ variables and consequently $n-m$ variables are missing. This means that $\bm Y = (\bm Y_1, \bm Y_2) = (\bm \Yobs, \bm \Ymis)$ with
+
+\begin{align*}
+\bm \Yobs &= (Y_{1,1}, \ldots, Y_{n,1}, Y_{1,2}, \ldots, Y_{m,2}) \quad \text{ and}\\
+\bm \Ymis &= (Y_{m+1,2}, \ldots, Y_{n,2}).
+\end{align*}
+
+Since $\sigma_{12} = \sigma_{21}$, the bivariate normal is fully characterized by $\bm \theta = (\mu_1, \mu_2, \sigma_{11}, \sigma_{22}, \sigma_{12})$ and has density $f_1$ is given by
+
+$$
+f_1(y_1, y_2 \, | \, \bm \theta) = (2\pi)^{-1} |\bm \Sigma|^{-\frac{1}{2}} \exp\left(- \frac{1}{2} (\bm y - \bm \mu)^T \bm \Sigma^{-1} (\bm y - \bm \mu) \right)
+$$
+with
+
+$$
+|\bm \Sigma| = \sigma_{11} \sigma_{22} - \sigma_{12}^2 \; \text{ and } \; \bm \Sigma^{-1} = |\bm \Sigma|^{-1} \left(\begin{array}{cc} \sigma_{22} & -\sigma_{12}\\ - \sigma_{12} & \sigma_{11}\\ \end{array} \right).
+$$
+
+
+### The observed-data log-Likelihood
+
+Recall that in presence of missing-data, the theoretically correct ML estimate would be the parameter maximizing the (log-)likelihood of the *observed* data. For the sample $\bm \Yobs$, we would have the following observed-data log-likelihood:
+
+\begin{align*}
+L(\bm \theta \, | \, \bm \yobs) = &\log f(\bm \yobs \, | \, \bm \theta)\\
+= &\sum_{i=1}^n \log f_{\Yobs} (\yobs \, | \, \bm \theta)\\
+= &\sum_{i=1}^m \log f_{1} (y_{i1}, y_{i2}  \, | \, \bm \theta) + \sum_{i=m+1}^n \log f_{1} (y_{i1}  \, | \, \mu_1, \sigma_{11})\\
+= &-m \log 2 \pi - \frac{m}{2} \log |\bm \Sigma| - \frac{1}{2} \sum_{i=1}^m (\bm y_i - \bm \mu)^T \bm \Sigma^{-1} (\bm y_i - \bm \mu)\\
+&-\frac{n-m}{2} \log 2 \pi - \frac{n-m}{2} \log \sigma_{11} - \frac{1}{2 \sigma_{11}} \sum_{i=m+1}^n (y_{i1} - \mu_1)^2
+\end{align*}
+
+because for samples $m+1$ to $n$ we only observe $Y_1$. Since for the bivariate normal, we are able to state the asymptotic variance-covariance matrix based on $\bm \Yobs$ directly, this will serve as a benchmark for the SEM algorithm.
+
+### The complete-data log-likelihood
+
+As we have seen, the EM algorithm uses the conditional expectation of the complete-data log-likelihood $Q(\bm \theta \, | \, \bm \theta^{(t)}) = \E[L(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs, \bm \theta^{(t)}]$ to iteratively approximate the ML estimate of the (log-)likelihood of the observed data. The complete-data log-likelihood of the bivariate normal sample $\bm Y$ is given by
+
+\begin{align*}
+L(\bm \theta \, | \, \bm y) = &\log f(\bm y \, | \, \bm \theta)\\
+= &\sum_{i=1}^n \log f_1(y_{i1}, y_{i2} \, | \, \bm \theta)\\
+= &-n \log 2 \pi - \frac{n}{2} \log |\bm \Sigma| - \frac{1}{2} \sum_{i=1}^n (\bm y_i - \bm \mu)^T \bm \Sigma^{-1} (\bm y_i - \bm \mu)\\
+= &-n \log 2 \pi - \frac{n}{2} \log |\bm \Sigma| - \frac{1}{2} |\bm \Sigma|^{-1} \Big \{ \sigma_{22} T_{11} + \sigma_{11} T_{22} - 2 \sigma_{12} T_{12}\\
+&- 2 \Big( T_1 (\mu_1 \sigma_{22} - \mu_2 \sigma_{12}) + T_2 (\mu_2 \sigma_{11} - \mu_1 \sigma_{12}) \Big)\\
+&+ n (\mu_1^2 \sigma_{22} + \mu_2^2 \sigma_{11} - 2 \mu_1 \mu_2 \sigma_{12}) \Big \}
+\end{align*}
+
+since the bivariate normal is an exponential family and therefore the log-likelihood is linear in the sufficient statistics
+
+$$
+T_1 = \sum_{i=1}^n y_{i1}, \quad T_2 = \sum_{i=1}^n y_{i2}, \quad T_{11} = \sum_{i=1}^n y_{i1}^2, \quad T_{22} = \sum_{i=1}^n y_{i2}^2, \quad T_{12} = \sum_{i=1}^n y_{i1} y_{i2}.
+$$
+
+### E step and M step
+
+As we can see from the complete-data log-likelihood, in order to compute the conditional expectation of the complete-data log-likelihood $Q(\bm \theta \, | \, \bm \theta^{(t)}) = \E[L(\bm \theta \, | \, \bm Y) \, | \, \bm \Yobs = \bm \yobs, \bm \theta^{(t)}]$ for given data $\bm \Yobs = \bm \yobs$ and currently best parameter $\theta^{(t)}$, we just have to compute the conditional expectational values of the sufficient statistics (as we already concluded in section 3.3 for exponential families in general). Since the samples $(Y_{1,1}, Y_{1,2}), \ldots, (Y_{n,1}, Y_{n,2})$ are independent, we only have to evaluate
+
+$$
+\E[Y_{i2} \, | \, Y_{i1} = y_{i1}, \bm \theta^{(t)}] \; \text{ and } \; \E[Y_{i2}^2 \, | \, Y_{i1} = y_{i1}, \bm \theta^{(t)}]
+$$
+
+for the missing samples $i = m+1, \ldots, n$. Because for the bivariate normal, the conditional distribution is given by
+
+$$
+\left( Y_2 \, | \, Y_1 = y_1 \right) \sim N \left(\mu_2 + \frac{\sigma_{12}}{\sigma_{11}}(y_1 - \mu_1), \sigma_{22}(1-\rho^2) \right), \quad \rho = \frac{\sigma_{12}}{\sqrt{\sigma_{11} \sigma_{22}}},
+$$
+
+we get the following **E step**:
+
+\begin{align*}
+\E[Y_{i2} \, | \, Y_{i1} &= y_{i1}, \bm \theta^{(t)}] = \mu_2^{(t)} + \left(\frac{\sigma_{12}^{(t)}}{\sigma_{11}^{(t)}}\right)(y_{i1} - \mu_1^{(t)}) = \underbrace{\mu_2^{(t)} - \left(\frac{\sigma_{12}^{(t)}}{\sigma_{11}^{(t)}}\right) \mu_1^{(t)}}_{=: \beta_0^{(t)}} + \underbrace{\left(\frac{\sigma_{12}^{(t)}}{\sigma_{11}^{(t)}}\right)}_{=: \beta_1^{(t)}} y_{i1} =: y_{i2}^{(t)}\\
+\E[Y_{i2}^2 \, | \, Y_{i1} &= y_{i1}, \bm \theta^{(t)}] = \sigma_{22}^{(t)} (1 - {\rho^{(t)}}^2) + \big(y_{i2}^{(t)}\big)^2
+\end{align*}
+
+for the missing values $i = m+1, \ldots, n$ in the $t$-th iteration which is familiar from linear regression ($\hat y = \hat \beta_0 + \hat \beta_1 x$ with $\hat \beta_0 = \bar y - \hat \beta_1 \bar x$). Using the conditional expectational values with the usual complete-data ML estimators
+
+\begin{align*}
+\hat \mu_k &= \frac{1}{n} \, T_k , \quad k = 1,2\\
+\hat \sigma_{kl} &= \frac{1}{n} \, \left( T_{kl} - \frac{1}{n} T_k T_l \right), \quad k,l = 1,2.
+\end{align*}
+
+then gives the parameter updates $\bm \theta^{(t+1)}$ of the **M step**. Note that since there are only missing values for $Y_2$, the parameters of $Y_1$ converge immediately after the first EM iteration with $\hat \mu_1 = \bm{\bar y_1}$ and $\hat \sigma_{11} = T_{11}/n - \bm{\bar y_1}^2$.
+
+### The complete-data Fisher information
+
+Since the bivarate normal is also a *regular* exponential family, in order to evaluate the asymptotic complete-data variance-covariance matrix $V_c = \I_{oc}^{-1}$, we can use the standard Fisher information matrix $\I(\bm \theta)$ as mentioned in section 3.3 because for regular exponential families we have $\I_{oc} = \I(\bm \theta)$. The Fisher information for the bivariate normal can be derived from the general expression of the Fisher information for the multivariate normal distribution.[^2] We get
+
+$$
+\I_n(\bm \theta) = n \cdot \I(\bm \theta) = n \cdot |\bm \Sigma|^{-2} \left(\begin{array}{ccccc} 
+\sigma_{22} |\bm \Sigma| & \cdots & \cdots & \cdots & \cdots \\
+\sigma_{12} |\bm \Sigma| & \sigma_{11} |\bm \Sigma| & \cdots & \cdots & \cdots \\
+0 & 0 & \frac{1}{2} \sigma_{22}^2 & \cdots & \cdots \\
+0 & 0 & \frac{1}{2} \sigma_{12}^2 & \frac{1}{2} \sigma_{11}^2 & \cdots \\
+0 & 0 & -\sigma_{22} \sigma_{12} & -\sigma_{11} \sigma_{12} & \sigma_{11} \sigma_{22} + \sigma_{12}^2
+\end{array} \right)
+$$
+
+with Inverse
+
+$$
+\I_n^{-1}(\bm \theta) = \frac{1}{n} \left(\begin{array}{ccccc} 
+\sigma_{11} & \cdots & \cdots & \cdots & \cdots \\
+-\sigma_{12} & \sigma_{22} & \cdots & \cdots & \cdots \\
+0 & 0 & 2 \sigma_{11}^2 & \cdots & \cdots \\
+0 & 0 & \frac{2 |\bm \Sigma|^2 (\sigma_{11} \sigma_{22} \sigma_{12}^2 - \sigma_{12}^4)}{c}  & 2 \sigma_{22}^2 & \cdots \\
+0 & 0 & 2\sigma_{11} \sigma_{12} & 2\sigma_{22} \sigma_{12} & \frac{|\bm \Sigma|^2 (\sigma_{11}^2 \sigma_{22}^2 - \sigma_{12}^4)}{c}
+\end{array} \right)
+$$
+
+where
+
+$$
+c := - \sigma_{12}^6 + 3 \sigma_{11} \sigma_{22} \sigma_{12}^4 - 3 (\sigma_{11} \sigma_{22} \sigma_{12})^2 + (\sigma_{11} \sigma_{22})^3.
+$$
+
+Now we have all the formulas needed to implement the EM and SEM algorithm for the bivariate normal example.
+
 
 ### No missing information in some components
 
@@ -377,7 +502,7 @@ is proven in appendix of @meng1991sem, where matrix $A$ is identified with $A = 
 
 In this section we want to introduce the main algorithm for EM and SEM computation. Afterwards the results of @meng1991sem in their bivariate example will be reproduced to verify, that our implementation runs correctly.
 
-
+<!-- stopping criterion depending on symmetry of matrix (if matrix is very symmetric, stop em) -->
 
 
 
@@ -385,6 +510,7 @@ In this section we want to introduce the main algorithm for EM and SEM computati
 
 <!--Footnotes-->
 [^1]: One can show that $L(\theta^{(t+1)} \, | \, \bm \Yobs) - L(\theta^{(t)} \, | \, \bm \Yobs) \geq 0$ using Jensen's inequality. See for example the original EM paper by @dempster1977maximum for a detailed proof.
+[^2]: See for example <https://en.wikipedia.org/wiki/Fisher_information#Multivariate_normal_distribution>.
 
 
 <!-- References -->
