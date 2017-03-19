@@ -699,7 +699,7 @@ print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu,
                       tail(result$params, 1)[[1]]$cov[2,2],
                       tail(result$params, 1)[[1]]$cov[1,2]),
                     ncol = 5, dimnames = list(
-                      NULL,
+                      "values",
                       c("mu1", "mu2", "sigma11", "sigma22", "sigma12"))
                     ),
              caption = "EM parameter estimates"),
@@ -711,17 +711,16 @@ which match the results in Table 5 of @meng1991sem of the transformed parameteri
 ```{r EM transParam, results="asis", echo=FALSE}
 corr <- tail(result$params, 1)[[1]]$cov[1, 2] / 
   sqrt(tail(result$params, 1)[[1]]$cov[1, 1] * tail(result$params, 1)[[1]]$cov[2, 2])
-Z <- 
+Z <- 0.5 * log((1+corr)/(1-corr))
 
-print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu, 
-                      tail(result$params, 1)[[1]]$cov[1,1],
-                      tail(result$params, 1)[[1]]$cov[2,2],
-                      tail(result$params, 1)[[1]]$cov[1,2]),
+print(xtable(matrix(c(tail(result$params, 1)[[1]]$mu[2], 
+                      log(tail(result$params, 1)[[1]]$cov[2,2]), 
+                      Z),
                     ncol = 3, dimnames = list(
-                      NULL,
-                      c("mu2", "log sigma22", "Z",))
+                      "values",
+                      c("mu2", "log sigma22", "Z"))
                     ),
-             caption = "EM parameter estimates"),
+             caption = "EM estimates of transformed parameters"),
       comment = FALSE)
 ```
 
