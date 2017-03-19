@@ -341,6 +341,7 @@ if the EM algorithm converges, i.e. when $\lim_{t \to \infty} \theta_i^{(t)} = \
 
 
 
+
 # Application
 
 In this section, we will apply the SEM algorithm to a bivariate normal example. To verify our implementation, we will first reproduce the results of @meng1991sem in their bivariate normal example. Afterwards, we will conduct a simulation study to evaluate the quality of the SEM algorithm by comparing the results to the direct estimation of the large-sample observed-data covariance matrix, which is possible to compute in the bivariate normal example, and by performing the simulation for different missing-data mechanisms. Let's first introduce the bivariate normal model.
@@ -442,7 +443,7 @@ Since the bivarate normal is also a *regular* exponential family, in order to ev
 $$
 \I_n(\bm \theta) = n \cdot \I(\bm \theta) = n \cdot |\bm \Sigma|^{-2} \left(\begin{array}{ccccc} 
 \sigma_{22} |\bm \Sigma| & \cdots & \cdots & \cdots & \cdots \\
-\sigma_{12} |\bm \Sigma| & \sigma_{11} |\bm \Sigma| & \cdots & \cdots & \cdots \\
+- \sigma_{12} |\bm \Sigma| & \sigma_{11} |\bm \Sigma| & \cdots & \cdots & \cdots \\
 0 & 0 & \frac{1}{2} \sigma_{22}^2 & \cdots & \cdots \\
 0 & 0 & \frac{1}{2} \sigma_{12}^2 & \frac{1}{2} \sigma_{11}^2 & \cdots \\
 0 & 0 & -\sigma_{22} \sigma_{12} & -\sigma_{11} \sigma_{12} & \sigma_{11} \sigma_{22} + \sigma_{12}^2
@@ -454,7 +455,7 @@ with Inverse
 $$
 \I_n^{-1}(\bm \theta) = \frac{1}{n} \left(\begin{array}{ccccc} 
 \sigma_{11} & \cdots & \cdots & \cdots & \cdots \\
--\sigma_{12} & \sigma_{22} & \cdots & \cdots & \cdots \\
+\sigma_{12} & \sigma_{22} & \cdots & \cdots & \cdots \\
 0 & 0 & 2 \sigma_{11}^2 & \cdots & \cdots \\
 0 & 0 & \frac{2 |\bm \Sigma|^2 (\sigma_{11} \sigma_{22} \sigma_{12}^2 - \sigma_{12}^4)}{c}  & 2 \sigma_{22}^2 & \cdots \\
 0 & 0 & 2\sigma_{11} \sigma_{12} & 2\sigma_{22} \sigma_{12} & \frac{|\bm \Sigma|^2 (\sigma_{11}^2 \sigma_{22}^2 - \sigma_{12}^4)}{c}
